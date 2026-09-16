@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set active_page = "search" %}
+
+{% block title %}RailSim Express - Train Results & Selection{% endblock %}
+
+{% block content %}
+<div class="booking-stepper">
+    <div class="step-item completed">
+        <div class="step-number">&#10003;</div>
+        <span>Search</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item active">
+        <div class="step-number">2</div>
+        <span>Select & Class</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item">
+        <div class="step-number">3</div>
+        <span>Passengers</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item">
+        <div class="step-number">4</div>
+        <span>Review & Pay</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item">
+        <div class="step-number">5</div>
+        <span>Confirmed</span>
+    </div>
+</div>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+        <h1 class="page-title">{{ source }} &rarr; {{ dest }}</h1>
+        <p class="page-subtitle">Journey Date: <strong>{{ travel_date }}</strong> | Quota: <span class="badge badge-info">{{ quota }}</span></p>
+    </div>
+    <a href="{{ url_for('search') }}" class="btn btn-secondary" style="font-size: 0.85rem;">Modify Search</a>
+</div>
+
+<!-- Hidden form for posting selected train and class to passenger page -->
+<form action="{{ url_for('passenger') }}" method="GET" id="trainSelectionForm">
+    <input type="hidden" name="train_id" id="selectedTrainInput" value="">
+    <input type="hidden" name="travel_class" id="selectedClassInput" value="">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="dest" value="{{ dest }}">
+    <input type="hidden" name="date" value="{{ travel_date }}">
+    <input type="hidden" name="quota" value="{{ quota }}">
+
+    {% for train in trains %}
+    <div class="train-card" data-train-id="{{ train.id }}">
+        <div class="train-header">
+            <div class="train-name-group">
+                <h3>{{ train.train_name }} <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">(#{{ train.train_number }})</span></h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Runs Daily &bull; Pantry Available &bull; On-Time Rating: 94%</span>
+            </div>
+            <span class="badge badge-success">Operating Normally</span>
+        </div>
+
+        <div class="train-schedule-grid">
+            <div>
+                <div class="station-time">{{ train.departure_time }}</div>
+                <div class="station-name">{{ train.source_station }}</div>
+            </div>
+
+            <div class="travel-duration">
+                <div>{{ train.duration }}</div>
+                <div class="duration-line"></div>
+                <div>Direct Express</div>
+            </div>
+
+            <div style="text-align: right;">
+                <div class="station-time">{{ train.arrival_time }}</div>
+                <div class="station-name">{{ train.dest_station }}</div>
+            </div>
+        </div>
+
+        <p style="font-size: 0.85rem; font-weight: 600; color: #475569; margin-top: 0.75rem;">Select Travel Class & Check Availability:</p>
+        <div class="class-blocks-grid">
+            <div class="class-block" data-train-id="{{ train.id }}" data-class-code="1A" data-fare="{{ (train.fare_base * 3.2)|round|int }}">
+                <div class="class-title">1A (AC First)</div>
+                <div class="class-fare">&#8377;{{ (train.fare_base * 3.2)|round|int }}</div>
+                <div class="class-status" style="color: var(--success-color);">AVAILABLE - 12</div>
+            </div>
+
+            <div class="class-block" data-train-id="{{ train.id }}" data-class-code="2A" data-fare="{{ (train.fare_base * 2.1)|round|int }}">
+                <div class="class-title">2A (AC 2 Tier)</div>
+                <div class="class-fare">&#8377;{{ (train.fare_base * 2.1)|round|int }}</div>
+                <div class="class-status" style="color: var(--success-color);">AVAILABLE - 28</div>
+            </div>
+
+            <div class="class-block" data-train-id="{{ train.id }}" data-class-code="3A" data-fare="{{ (train.fare_base * 1.5)|round|int }}">
+                <div class="class-title">3A (AC 3 Tier)</div>
+                <div class="class-fare">&#8377;{{ (train.fare_base * 1.5)|round|int }}</div>
+                <div class="class-status" style="color: var(--success-color);">AVAILABLE - 54</div>
+            </div>
+
+            <div class="class-block" data-train-id="{{ train.id }}" data-class-code="SL" data-fare="{{ train.fare_base|round|int }}">
+                <div class="class-title">SL (Sleeper)</div>
+                <div class="class-fare">&#8377;{{ train.fare_base|round|int }}</div>
+                <div class="class-status" style="color: var(--warning-color);">RAC - 06</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary book-train-btn" disabled>
+                Select a Class Above to Book
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</form>
+{% endblock %}

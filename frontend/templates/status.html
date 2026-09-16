@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% set active_page = "status" %}
+
+{% block title %}RailSim Express - Session & Security Diagnostics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">&#128737; Session & Behavioral Security Diagnostics</h1>
+    <p class="page-subtitle">Real-time inspection of client telemetry, ML bot risk assessment, and adaptive graduated defense state.</p>
+</div>
+
+<div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 1.5rem;">
+    <!-- Session Meta Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">&#128100; Active Session Metadata</h2>
+            <span class="badge badge-success">Active Session</span>
+        </div>
+        <table style="width: 100%; font-size: 0.88rem;">
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0; color: var(--text-muted);">Session Token:</td>
+                <td style="padding: 0.5rem 0; font-family: monospace; font-weight: 600;">{{ session.get('session_token', 'NOT_INITIALIZED') }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0; color: var(--text-muted);">Authenticated User:</td>
+                <td style="padding: 0.5rem 0; font-weight: 600;">{{ session.get('username', 'Anonymous Traveler') }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0; color: var(--text-muted);">Environment:</td>
+                <td style="padding: 0.5rem 0;"><span class="badge badge-info">Localhost Simulation</span></td>
+            </tr>
+            <tr>
+                <td style="padding: 0.5rem 0; color: var(--text-muted);">Privacy Guard:</td>
+                <td style="padding: 0.5rem 0; color: var(--success-color); font-weight: 600;">&#10004; Zero Plaintext PII / Temporal Deltas Only</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Security Posture Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">&#9878; Adaptive Defense Status</h2>
+            <span class="badge badge-success">{{ security_action|default('ALLOW (Normal Access)') }}</span>
+        </div>
+        <div style="text-align: center; padding: 1rem 0;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">Current Bot Risk Score:</div>
+            <div style="font-size: 2.5rem; font-weight: 800; color: {% if risk_score|default(14) < 40 %}var(--success-color){% elif risk_score|default(14) < 70 %}var(--warning-color){% else %}var(--danger-color){% endif %};">
+                {{ risk_score|default(14) }}<span style="font-size: 1.2rem; font-weight: 500; color: var(--text-muted);">/100</span>
+            </div>
+            <div style="font-size: 0.85rem; font-weight: 600; margin-top: 0.25rem;">
+                {% if risk_score|default(14) < 40 %}
+                    <span style="color: var(--success-color);">&#9679; LOW RISK &mdash; Frictionless Booking Authorized</span>
+                {% elif risk_score|default(14) < 70 %}
+                    <span style="color: var(--warning-color);">&#9679; MEDIUM RISK &mdash; Verification Required</span>
+                {% else %}
+                    <span style="color: var(--danger-color);">&#9679; HIGH RISK &mdash; Throttled & Restricted</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-time Behavioral Telemetry Channels -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">&#128202; Behavioral Telemetry Channels (Multi-Signal Stream)</h2>
+        <span class="badge badge-info">Client-Side Instrumented</span>
+    </div>
+
+    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Keystroke Events Recorded</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);" id="diagKeystrokeCount">
+                {{ telemetry_stats.keystrokes|default(42) }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">&#916;t intervals only; passwords skipped</div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Cursor Trajectory Distance</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);" id="diagMouseDistance">
+                {{ telemetry_stats.mouse_dist|default('1,420 px') }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Kinematic entropy & curvature active</div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Scroll Hesitation Events</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);" id="diagScrollCount">
+                {{ telemetry_stats.scrolls|default(11) }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Page inspection intervals</div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Form Dwell Time</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);" id="diagFormDwell">
+                {{ telemetry_stats.dwell_time|default('14.2 s') }}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Field focus-to-submission latency</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

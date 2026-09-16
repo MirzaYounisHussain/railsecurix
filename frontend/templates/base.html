@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RailSim Express - Simulated Ticket Booking{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+    <!-- Research & Prototype Disclaimer Notice -->
+    <div class="research-disclaimer">
+        <strong>ACADEMIC RESEARCH PROTOTYPE:</strong> Simulated railway reservation environment for AI behavioral bot detection & adaptive cybersecurity.
+        <strong>NO REAL TRANSACTIONS &bull; NO REAL IRCTC INTEGRATION &bull; DEMO USE ONLY</strong>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="nav-brand">
+            <div class="brand-logo-badge">R</div>
+            <div>
+                <div>RailSim Express</div>
+                <span class="sub-title">AI-Secured Reservation Portal</span>
+            </div>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+            <li><a href="{{ url_for('search') }}" class="{% if active_page == 'search' %}active{% endif %}">Book Ticket</a></li>
+            <li><a href="{{ url_for('status') }}" class="{% if active_page == 'status' %}active{% endif %}">Session & Security</a></li>
+            {% if session.get('user_id') %}
+                <li class="nav-user-badge">
+                    <span>&#128100;</span> {{ session.get('username', 'Traveler') }}
+                </li>
+                <li><a href="{{ url_for('logout') }}" style="color: #fca5a5;">Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}" class="{% if active_page == 'login' %}active{% endif %}">Login</a></li>
+                <li><a href="{{ url_for('register') }}" class="btn btn-accent" style="padding: 0.35rem 0.85rem; font-size: 0.85rem;">Register</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Main Page Body -->
+    <main class="main-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category in ['success', 'warning', 'danger', 'info'] else 'info' }}">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div>
+            <strong>RailSim Express Prototype</strong> &bull; Behavioral Bot Detection & Adaptive Cybersecurity Framework
+        </div>
+        <div class="footer-meta">
+            Session ID: <span id="footerSessionToken">{{ session.get('session_token', 'INIT_SESSION') }}</span> |
+            Client Telemetry: <span id="telemetryStatusBadge" style="color: #38bdf8;">ACTIVE</span> |
+            Strict Localhost Simulation &bull; B.Tech CSE Cybersecurity Project
+        </div>
+    </footer>
+
+    <!-- Core Scripts -->
+    <script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/telemetry.js') }}"></script>
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set active_page = "challenge" %}
+
+{% block title %}RailSim Express - Adaptive Security Verification{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div class="card" style="box-shadow: var(--shadow-md); border-top: 4px solid var(--warning-color);">
+        <div class="card-header">
+            <h2 class="card-title">&#128737; Additional Verification Required</h2>
+            <span class="badge badge-warning">Adaptive Challenge</span>
+        </div>
+
+        <p style="font-size: 0.92rem; color: var(--text-main); margin-bottom: 1.25rem;">
+            To ensure fair access during high-demand booking periods, our adaptive cybersecurity system periodically requests interactive verification.
+        </p>
+
+        <div class="alert alert-info" style="font-size: 0.85rem; margin-bottom: 1.5rem;">
+            <strong>Verification Reason:</strong> Unusual interaction pacing or sudden form completion timing was detected on this session (Score: {{ risk_score|default(52) }}/100).
+        </div>
+
+        <form action="{{ url_for('verify_challenge') }}" method="POST" id="challengeForm">
+            <input type="hidden" name="return_url" value="{{ return_url|default('/payment') }}">
+
+            <div class="card" style="background: #f8fafc; text-align: center; padding: 1.5rem; border-color: #cbd5e1;">
+                <p style="font-weight: 600; font-size: 1rem; color: var(--primary-color); margin-bottom: 1rem;">
+                    &#129513; Cognitive Challenge: Click on the <strong>Train Engine</strong> icon below:
+                </p>
+
+                <div style="display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 1rem;">
+                    <label style="cursor: pointer; padding: 0.75rem 1.25rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff; display: flex; flex-direction: column; align-items: center;">
+                        <input type="radio" name="challenge_answer" value="AIRPLANE" style="margin-bottom: 0.5rem;" required>
+                        <span style="font-size: 2rem;">&#9992;</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Airplane</span>
+                    </label>
+
+                    <label style="cursor: pointer; padding: 0.75rem 1.25rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff; display: flex; flex-direction: column; align-items: center;">
+                        <input type="radio" name="challenge_answer" value="TRAIN" style="margin-bottom: 0.5rem;">
+                        <span style="font-size: 2rem;">&#128642;</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Train</span>
+                    </label>
+
+                    <label style="cursor: pointer; padding: 0.75rem 1.25rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff; display: flex; flex-direction: column; align-items: center;">
+                        <input type="radio" name="challenge_answer" value="BICYCLE" style="margin-bottom: 0.5rem;">
+                        <span style="font-size: 2rem;">&#128690;</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Bicycle</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary btn-block" style="padding: 0.8rem; font-size: 1rem;">
+                    Verify & Continue Booking &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

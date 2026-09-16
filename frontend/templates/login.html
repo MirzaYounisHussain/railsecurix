@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% set active_page = "login" %}
+
+{% block title %}RailSim Express - Traveler Sign In{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div class="card" style="box-shadow: var(--shadow-md);">
+        <div class="card-header">
+            <h2 class="card-title">&#128272; Sign In</h2>
+            <span class="badge badge-info">Session Protected</span>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST" id="loginForm">
+            <div class="form-group">
+                <label for="loginUsername">Username *</label>
+                <input type="text" name="username" id="loginUsername" class="form-control" placeholder="Enter your username" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword">Password *</label>
+                <input type="password" name="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary btn-block" style="padding: 0.75rem;">
+                    Sign In to Book
+                </button>
+            </div>
+
+            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); text-align: center;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Quick Test Account for Prototype Evaluation:</p>
+                <button type="button" id="fillDemoCredsBtn" class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.3rem 0.75rem;">
+                    Fill Demo Credentials (testuser / password123)
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                Don't have an account yet? <a href="{{ url_for('register') }}" style="color: var(--accent-color); font-weight: 600;">Register new traveler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const demoBtn = document.getElementById('fillDemoCredsBtn');
+    if (demoBtn) {
+        demoBtn.addEventListener('click', () => {
+            document.getElementById('loginUsername').value = 'testuser';
+            document.getElementById('loginPassword').value = 'password123';
+        });
+    }
+});
+</script>
+{% endblock %}

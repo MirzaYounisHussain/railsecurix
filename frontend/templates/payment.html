@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% set active_page = "search" %}
+
+{% block title %}RailSim Express - Simulated Payment Gateway{% endblock %}
+
+{% block content %}
+<div class="booking-stepper">
+    <div class="step-item completed">
+        <div class="step-number">&#10003;</div>
+        <span>Search</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item completed">
+        <div class="step-number">&#10003;</div>
+        <span>Select & Class</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item completed">
+        <div class="step-number">&#10003;</div>
+        <span>Passengers</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item active">
+        <div class="step-number">4</div>
+        <span>Simulated Payment</span>
+    </div>
+    <div class="step-divider"></div>
+    <div class="step-item">
+        <div class="step-number">5</div>
+        <span>Confirmed</span>
+    </div>
+</div>
+
+<div class="container-narrow">
+    <!-- Mandatory Simulation Alert -->
+    <div class="alert alert-warning" style="border-left: 4px solid var(--warning-color); margin-bottom: 1.5rem;">
+        <div>
+            <strong>&#9888; SIMULATED PAYMENT ENVIRONMENT:</strong> This gateway is purely a research mock.
+            <strong>DO NOT ENTER REAL CARD NUMBERS OR BANK PASSWORDS.</strong> No real funds will be transferred or requested.
+        </div>
+    </div>
+
+    <div class="card" style="box-shadow: var(--shadow-md);">
+        <div class="card-header">
+            <h2 class="card-title">&#128179; Select Simulated Payment Method</h2>
+            <span style="font-size: 1.1rem; font-weight: 700; color: #047857;">Pay &#8377;{{ total_fare }}</span>
+        </div>
+
+        <form action="{{ url_for('confirm_booking') }}" method="POST" id="simulatedPaymentForm">
+            <input type="hidden" name="booking_ref" value="{{ booking_ref }}">
+            <input type="hidden" name="total_fare" value="{{ total_fare }}">
+
+            <!-- Mock Options -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <label class="card" style="margin: 0; padding: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; border: 1.5px solid var(--accent-color); background: #f0f9ff;">
+                        <input type="radio" name="payment_method" value="MOCK_UPI" checked>
+                        <div>
+                            <strong>Simulated Virtual UPI (Recommended)</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Instant 1-click test authorization (user@simulatedupi)</div>
+                        </div>
+                    </label>
+
+                    <label class="card" style="margin: 0; padding: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; border: 1px solid var(--border-color);">
+                        <input type="radio" name="payment_method" value="MOCK_NETBANKING">
+                        <div>
+                            <strong>Simulated Net Banking</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Mock authorization via Simulated Reserve Bank</div>
+                        </div>
+                    </label>
+
+                    <label class="card" style="margin: 0; padding: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; border: 1px solid var(--border-color);">
+                        <input type="radio" name="payment_method" value="MOCK_CARD">
+                        <div>
+                            <strong>Simulated Sandbox Test Card</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Mock test credentials (4111-XXXX-XXXX-1111)</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Simulated Payment Fields (Sanitized & Safe) -->
+            <div class="form-group" style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <label for="mockAccountRef">Mock Account / Virtual ID</label>
+                <input type="text" id="mockAccountRef" class="form-control" value="traveler@mockpay" readonly style="background: #e2e8f0; cursor: not-allowed;">
+                <span class="form-text">&#128274; Client keystroke telemetry is automatically suppressed on payment forms.</span>
+            </div>
+
+            <div id="paymentStatusBox" style="display: none; margin-top: 1rem;" class="alert alert-info">
+                <span>&#9203; Processing simulated transaction state and checking adaptive behavioral risk score...</span>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" id="payNowBtn" class="btn btn-accent btn-block" style="padding: 0.85rem; font-size: 1.05rem;">
+                    Authorize Simulated Payment (&#8377;{{ total_fare }}) &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

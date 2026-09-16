@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set active_page = "home" %}
+
+{% block title %}RailSim Express - Home & Quick Booking{% endblock %}
+
+{% block content %}
+<div class="page-header" style="text-align: center; margin-bottom: 2rem;">
+    <h1 class="page-title" style="font-size: 2.2rem; color: var(--primary-color);">Secure Railway Ticket Reservation</h1>
+    <p class="page-subtitle" style="font-size: 1.1rem;">
+        Experience seamless online ticket booking with next-generation behavioral bot defense and adaptive cybersecurity.
+    </p>
+</div>
+
+<!-- Quick Search Card -->
+<div class="card" style="box-shadow: var(--shadow-md); border-top: 4px solid var(--accent-color);">
+    <div class="card-header">
+        <h2 class="card-title">&#128645; Book Train Ticket</h2>
+        <span class="badge badge-info">Tatkal & General Quota Available</span>
+    </div>
+
+    <form action="{{ url_for('results') }}" method="GET" id="quickSearchForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="sourceStation">Origin Station (From) *</label>
+                <select name="source" id="sourceStation" class="form-control" required>
+                    <option value="NDLS">NDLS - New Delhi</option>
+                    <option value="BCT">BCT - Mumbai Central</option>
+                    <option value="HWH">HWH - Howrah Junction</option>
+                    <option value="MAS">MAS - Chennai Central</option>
+                    <option value="SBC">SBC - KSR Bengaluru</option>
+                </select>
+            </div>
+
+            <div style="display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1.1rem;">
+                <button type="button" id="swapStationsBtn" class="btn btn-secondary" title="Swap Stations" style="padding: 0.6rem 0.9rem;">
+                    &#8644;
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label for="destStation">Destination Station (To) *</label>
+                <select name="dest" id="destStation" class="form-control" required>
+                    <option value="BCT">BCT - Mumbai Central</option>
+                    <option value="NDLS">NDLS - New Delhi</option>
+                    <option value="HWH">HWH - Howrah Junction</option>
+                    <option value="MAS">MAS - Chennai Central</option>
+                    <option value="SBC">SBC - KSR Bengaluru</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="travelDate">Journey Date *</label>
+                <input type="date" name="date" id="travelDate" class="form-control" required value="2026-09-20">
+            </div>
+
+            <div class="form-group">
+                <label for="quotaSelect">Quota Type</label>
+                <select name="quota" id="quotaSelect" class="form-control">
+                    <option value="GN">General (GN)</option>
+                    <option value="TQ">Tatkal (TQ)</option>
+                    <option value="PT">Premium Tatkal (PT)</option>
+                    <option value="LD">Ladies (LD)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="classSelect">Preferred Class</label>
+                <select name="class_pref" id="classSelect" class="form-control">
+                    <option value="ALL">All Classes</option>
+                    <option value="1A">AC First Class (1A)</option>
+                    <option value="2A">AC 2 Tier (2A)</option>
+                    <option value="3A">AC 3 Tier (3A)</option>
+                    <option value="SL">Sleeper (SL)</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-accent" style="padding: 0.75rem 2rem; font-size: 1rem;">
+                &#128269; Search Trains
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Architecture & Security Pillars Highlight -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 2rem;">
+    <div class="card" style="border-left: 4px solid var(--success-color);">
+        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#128187; Multi-Signal Behavioral ML</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Analyzes keystroke dynamics, cursor kinematics, scroll hesitation, and form dwell patterns to differentiate humans from bots without checking Selenium flags.
+        </p>
+    </div>
+
+    <div class="card" style="border-left: 4px solid var(--accent-color);">
+        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#9878; Low False-Positive Defense</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Adaptive graduated responses (Allow &rarr; Challenge &rarr; Rate-Limit) ensure genuine travelers are never permanently locked out by single anomalies.
+        </p>
+    </div>
+
+    <div class="card" style="border-left: 4px solid var(--warning-color);">
+        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#128274; Privacy-Preserving Telemetry</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Zero capture of plain text passwords or payment details. Strict event delta logging and cryptographically bound session tracking.
+        </p>
+    </div>
+</div>
+{% endblock %}
