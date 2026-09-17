@@ -1,0 +1,176 @@
+================================================================================
+PROJECT MASTER SPECIFICATION - TECHNICAL IMPLEMENTATION MILESTONES (PART B)
+================================================================================
+Project Title: AI-Based Behavioral Bot Detection and Adaptive Cybersecurity 
+               for Secure Online Ticket Booking
+Domain:        High-Demand Online Ticket Reservation (Simulated Railway System)
+Type:          B.Tech CSE / Cybersecurity Research Prototype
+Date:          September 2026
+================================================================================
+
+PHASE 00: Planning & Architecture Audit [STATUS: COMPLETED]
+--------------------------------------------------------------------------------
+- Conducted 10-point architectural and security flaw analysis (Problem -> Why -> Fix).
+- Formulated Architectural Decision Records (ADRs) and threat model.
+- Designed anti-leakage splitting strategy, privacy guardrails, and feature rules.
+- Created docs/ARCHITECTURE_AUDIT.md, plan.md, and implementation_plan.sh.
+- Defined permanent security guidelines in .agents/skills/ticket-bot-security/SKILL.md.
+
+PHASE 01: Simulated Booking Website (Frontend UI) [STATUS: COMPLETED]
+--------------------------------------------------------------------------------
+- Built complete 12-page simulated railway reservation workflow ("RailSim Express").
+- Implemented original branding and responsive styling (frontend/static/css/style.css).
+- Created interactive client-side workflow logic (frontend/static/js/booking.js).
+- Views implemented:
+    1.  Home (index.html)
+    2.  Registration (register.html)
+    3.  Login (login.html)
+    4.  Train Search (search.html)
+    5.  Search Results & Train Selection (results.html)
+    6.  Class & Seat Selection (integrated in results.html)
+    7.  Passenger Details (passenger.html)
+    8.  Booking Summary & Review (review.html)
+    9.  Simulated Payment Gateway (payment.html) - STRICTLY MOCK/RESEARCH ONLY
+    10. Booking Confirmation Ticket (confirmation.html) - With 10-digit PNR
+    11. User & Session Security Diagnostics (status.html)
+    12. Adaptive Verification Challenge (challenge.html)
+- Verified with 10 automated unit and integration tests (tests/test_phase1_website.py).
+
+PHASE 02: Backend & Database (Flask, SQLite, Schemas, Seed Data)
+--------------------------------------------------------------------------------
+- Design normalized 3NF SQLite database schema with PostgreSQL compatibility.
+- Implement tables: users, trains, train_schedules, bookings, passengers, sessions,
+  behavior_events, behavior_features, risk_assessments, security_actions.
+- Implement WAL-mode connection manager (database/db.py).
+- Populate database with realistic train schedules, station matrices, and fares.
+- Connect SQLite persistence to the Flask booking routes.
+
+PHASE 03: Behavioral Telemetry Collector (telemetry.js & Ingestion API)
+--------------------------------------------------------------------------------
+- Implement client-side telemetry engine (frontend/static/js/telemetry.js).
+- Collect multi-signal behavioral dimensions:
+    * Keyboard: Keydown/keyup timestamps, inter-key intervals (dt), typing cadence.
+    * Mouse: 2D coordinates, Euclidean distance, velocity, curvature, pause frequency.
+    * Scrolling: Scroll events, burst timing, page inspection intervals.
+    * Form Interaction: Field dwell times, field-to-field transition latency.
+- Enforce strict privacy filters: NEVER capture typed passwords or payment details.
+- Implement server-side telemetry receiver (behavior_tracking/collector.py).
+
+PHASE 04: Human Data Collection Workflow & Protocol
+--------------------------------------------------------------------------------
+- Establish controlled experimental protocol for genuine human booking sessions.
+- Document participant guidelines, consent protocol, and anonymized session tagging.
+- Collect diverse human baseline interaction sessions across varied devices and typing speeds.
+- Store raw session batches in data/raw/human/.
+
+PHASE 05: Controlled Bot Simulator (Selenium Multi-Profile Suite)
+--------------------------------------------------------------------------------
+- Build controlled Python + Selenium automation framework (bot_simulator/).
+- Strictly target localhost (NO interaction with real IRCTC or external portals).
+- Implement 5 distinct automation profiles:
+    1. BOT_PROFILE_FAST: Zero-delay, instant DOM filling.
+    2. BOT_PROFILE_FIXED_DELAY: Deterministic constant delay between actions.
+    3. BOT_PROFILE_VARIABLE_DELAY: Randomized uniform/normal delay distributions.
+    4. BOT_PROFILE_FAST_FORM: Human browsing speed with instant form filling.
+    5. BOT_PROFILE_ALTERNATE_NAVIGATION: Direct URL jumping & skipped workflow steps.
+- Execute batch automated runs and store sessions in data/raw/bot/.
+
+PHASE 06: Dataset Processing Pipeline (Clean, Session-Grouped Datasets)
+--------------------------------------------------------------------------------
+- Build data ingestion and sanitization pipeline (features/pipeline.py).
+- Validate telemetry schemas and filter corrupt/incomplete sessions.
+- Enforce strict ANTI-LEAKAGE session-level partitioning:
+    * All events from session X reside strictly in Train, Validation, or Test.
+    * Reserve unseen bot profiles exclusively for test holdout.
+- Output clean session tables to data/processed/.
+
+PHASE 07: Feature Engineering & Feature Dictionary Validation
+--------------------------------------------------------------------------------
+- Convert raw event time-series into 21+ session-level behavioral features:
+    * Keystroke: typing_speed_cpm, interkey_mean_ms, interkey_std_ms, interkey_entropy.
+    * Mouse: mouse_total_distance, mouse_mean_speed, mouse_speed_std, curvature_ratio.
+    * Clicks: click_count, click_interval_mean, click_interval_std.
+    * Scroll: scroll_count, scroll_interval_mean.
+    * Form/Session: form_completion_time, field_dwell_mean, request_frequency.
+- Formalize schema and data dictionary (docs/FEATURE_DICTIONARY.md).
+
+PHASE 08: Machine Learning Baseline & Training Pipeline
+--------------------------------------------------------------------------------
+- Implement reproducible ML pipeline (ml/training/train.py).
+- Train primary model: Random Forest Classifier (Scikit-learn).
+- Train scientific baseline models: Logistic Regression and XGBoost.
+- Evaluate using GroupKFold cross-validation grouped by session_token.
+- Serialize trained models and scaler preprocessors to ml/models/.
+
+PHASE 09: Risk Scoring Engine & Threshold Calibration
+--------------------------------------------------------------------------------
+- Implement real-time risk scoring engine (risk_engine/scorer.py).
+- Map model probability P(Bot | X) to normalized 0-100 Bot Risk Score.
+- Calibrate risk thresholds using validation ROC curves:
+    * LOW RISK    (0 - 39):  Frictionless booking permitted.
+    * MEDIUM RISK (40 - 69): Additional verification challenge required.
+    * HIGH RISK   (70 - 100): Dynamic rate-limiting and temporary restriction.
+- Target: False Positive Rate (FPR) < 2% on genuine human sessions.
+
+PHASE 10: Explainability & Risk Attribution Module
+--------------------------------------------------------------------------------
+- Build explainability engine (risk_engine/explainability.py).
+- Extract Random Forest tree feature importances and calculate local feature deviations.
+- Generate top 3 human-readable contributing risk signals for every flagged session.
+- Example output: "Form completion (0.42s) is 95% faster than human baseline".
+
+PHASE 11: Adaptive Security & Graduated Defense Gateway
+--------------------------------------------------------------------------------
+- Implement graduated defense middleware (security/policy.py).
+- Prevent destructive hard IP bans based on single probabilistic inferences.
+- Execute adaptive countermeasures:
+    * Cognitive verification challenge for borderline sessions.
+    * Token-bucket delay queue for suspicious request bursts.
+    * Temporary session restriction for the active booking window.
+
+PHASE 12: Streamlit Research & Monitoring Dashboard
+--------------------------------------------------------------------------------
+- Build interactive research analytics dashboard (dashboard/app.py).
+- Visualizations:
+    * Live session monitor (Human vs. Bot counts).
+    * Real-time risk score distributions and detection actions.
+    * Behavioral feature comparisons (violin/box plots).
+    * ML Performance: Confusion Matrix, ROC-AUC, Precision, Recall, F1.
+    * Explainability: Feature importance rankings and top risk drivers.
+
+PHASE 13: Full Automated & E2E Testing Suite (Pytest + Browser)
+--------------------------------------------------------------------------------
+- Comprehensive Pytest test suite covering:
+    * Database operations, ACID integrity, and password hashing.
+    * API authentication and session token validation.
+    * Behavioral feature extraction mathematical correctness.
+    * ML inference latency benchmark (Target: < 15ms).
+    * Adaptive rate-limiting and challenge flows.
+- Browser end-to-end verification of complete booking flows.
+
+PHASE 14: Experimental Evaluation & Ablation Study Execution
+--------------------------------------------------------------------------------
+- Execute and record 9 empirical research experiments:
+    * Experiment 1: Human vs. Fast Automation.
+    * Experiment 2: Human vs. Fixed-Delay Automation.
+    * Experiment 3: Human vs. Variable-Delay Automation.
+    * Experiment 4: Human vs. Fast-Form Automation.
+    * Experiment 5: Model Comparison (Random Forest vs. Logistic Regression vs. XGBoost).
+    * Experiment 6: Risk Threshold Tuning & ROC Curve Analysis.
+    * Experiment 7: Human False Positive Audit on clean sessions.
+    * Experiment 8: Generalization to Unseen Bot Automation Profiles.
+    * Experiment 9: Multi-Signal Feature Ablation Study (Keyboard only, Mouse only,
+                    Session only, Keyboard + Mouse, All Signals Combined).
+- Document empirical results in docs/EVALUATION_RESULTS.md (NO fabricated numbers).
+
+PHASE 15: Final Documentation, Research Report & Interactive Demo
+--------------------------------------------------------------------------------
+- Compile complete academic research report / thesis document:
+    * Abstract, Problem Statement, Novelty, Literature Review.
+    * Architecture, Telemetry Methodology, ML Pipeline, Adaptive Security.
+    * Experimental Results, Ablation Insights, Limitations, Ethical Analysis.
+    * Alignment with UN SDG 9 & SDG 11.
+- Prepare dual interactive demonstration:
+    * Scenario A: Normal human booking flow (Low Risk -> Allowed).
+    * Scenario B: Controlled bot automation flow (High Risk -> Adaptive Challenge / Throttled).
+================================================================================
