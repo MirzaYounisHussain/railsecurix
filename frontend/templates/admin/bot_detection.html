@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% set active_page = "admin_bot_detection" %}
+
+{% block title %}RailSim Express - Bot Detection Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">&#129302; Behavioral Bot Detection Pipeline</h1>
+    <p class="page-subtitle">Feature extraction channels, machine learning inference baselines, and risk threshold calibration.</p>
+</div>
+
+<!-- Architecture Pipeline Summary -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <div class="card" style="border-left: 4px solid var(--railway-blue); margin-bottom: 0;">
+        <h3 style="font-size: 1rem; color: var(--railway-navy); margin-bottom: 0.35rem;">1. Signal Acquisition</h3>
+        <p style="font-size: 0.82rem; color: var(--text-secondary);">
+            Captures keydown/keyup flight intervals, mouse trajectory curvature, click jitter, and form dwell times via client-side telemetry.
+        </p>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #8b5cf6; margin-bottom: 0;">
+        <h3 style="font-size: 1rem; color: var(--railway-navy); margin-bottom: 0.35rem;">2. Feature Engineering</h3>
+        <p style="font-size: 0.82rem; color: var(--text-secondary);">
+            Computes statistical moments: mean typing speed, stroke variance, angular jerk, hesitation deltas, and interaction entropy.
+        </p>
+    </div>
+
+    <div class="card" style="border-left: 4px solid var(--success-green); margin-bottom: 0;">
+        <h3 style="font-size: 1rem; color: var(--railway-navy); margin-bottom: 0.35rem;">3. Adaptive Defense</h3>
+        <p style="font-size: 0.82rem; color: var(--text-secondary);">
+            Calibrated risk scale: <strong>[0 - 30]</strong> Normal Access &bull; <strong>[31 - 70]</strong> Visual Challenge &bull; <strong>[71 - 100]</strong> Rate Throttle.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Simulated Automation Profiles & Defense Matrix</h2>
+    </div>
+
+    <div class="table-responsive">
+        <table class="railway-table">
+            <thead>
+                <tr>
+                    <th>Automation Profile</th>
+                    <th>Behavioral Signature</th>
+                    <th>Detection Mechanism</th>
+                    <th>Risk Band</th>
+                    <th>Action Policy</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Profile 1: Naive Bot</strong></td>
+                    <td>Instant DOM form completion (&lt; 200ms), 0 mouse events</td>
+                    <td>Dwell threshold &amp; flight time deviation</td>
+                    <td><span class="badge badge-danger">92 - 98</span></td>
+                    <td><code>THROTTLE / BLOCK</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Profile 2: Static Delay Bot</strong></td>
+                    <td>Fixed sleep delays (uniform 500ms intervals), no mouse curves</td>
+                    <td>Zero inter-key variance &amp; path entropy</td>
+                    <td><span class="badge badge-danger">82 - 89</span></td>
+                    <td><code>CHALLENGE &amp; THROTTLE</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Profile 3: Bezier Curve Bot</strong></td>
+                    <td>Curved mouse paths with synthetic velocity</td>
+                    <td>Kinematic acceleration variance &amp; jerk profile</td>
+                    <td><span class="badge badge-warning">58 - 68</span></td>
+                    <td><code>ADAPTIVE CHALLENGE</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Profile 4: Human-like Headless</strong></td>
+                    <td>Randomized timing + Bezier movements</td>
+                    <td>Cross-feature interaction entropy</td>
+                    <td><span class="badge badge-warning">45 - 55</span></td>
+                    <td><code>VERIFICATION CHALLENGE</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Genuine Human</strong></td>
+                    <td>Natural typing variance, hesitation, irregular mouse curvature</td>
+                    <td>High biological entropy &amp; natural dwell</td>
+                    <td><span class="badge badge-success">10 - 24</span></td>
+                    <td><code>ALLOW (Direct Booking)</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

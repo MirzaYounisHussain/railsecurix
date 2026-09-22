@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% set active_page = "profile" %}
+
+{% block title %}RailSim Express - Profile{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div class="page-header">
+        <h1 class="page-title">&#128100; User Profile</h1>
+        <p class="page-subtitle">Manage your account information and traveler settings.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Account Details</h2>
+            <span class="badge {% if user.role == 'admin' %}badge-danger{% else %}badge-info{% endif %}">
+                Role: {{ user.role|upper }}
+            </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+            <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Full Name</label>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--railway-navy);">{{ user.full_name }}</div>
+            </div>
+
+            <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Username</label>
+                <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">{{ user.username }}</div>
+            </div>
+
+            <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Email Address</label>
+                <div style="font-size: 1rem; color: var(--text-primary);">{{ user.email }}</div>
+            </div>
+
+            <div>
+                <label style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase;">Total Reservations</label>
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--success-green);">{{ bookings_count }} Bookings</div>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--railway-border); margin: 1.5rem 0;">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <a href="{{ url_for('my_bookings') }}" class="btn btn-secondary">
+                &#128203; View Booking History
+            </a>
+            {% if user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                &#128737; Open Security Dashboard
+            </a>
+            {% else %}
+            <a href="{{ url_for('search') }}" class="btn btn-railway">
+                &#128269; Book a Train
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,48 +4,54 @@
 {% block title %}RailSim Express - Passenger Details{% endblock %}
 
 {% block content %}
-<div class="booking-stepper">
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
+<!-- Railway 5-Step Stepper -->
+<div class="railway-stepper">
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
         <span>Search</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
-        <span>Select & Class</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
+        <span>Select Train</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item active">
-        <div class="step-number">3</div>
-        <span>Passengers</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step active">
+        <div class="stepper-num">3</div>
+        <span>Passenger Details</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item">
-        <div class="step-number">4</div>
-        <span>Review & Pay</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step">
+        <div class="stepper-num">4</div>
+        <span>Review</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item">
-        <div class="step-number">5</div>
-        <span>Confirmed</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step">
+        <div class="stepper-num">5</div>
+        <span>Confirmation</span>
     </div>
 </div>
 
-<div class="card" style="background: #f0f9ff; border-color: #bae6fd; margin-bottom: 1.25rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+<!-- Train Selection Summary -->
+<div class="card" style="background: var(--railway-light-blue); border-color: #bfdbfe; margin-bottom: 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
         <div>
-            <h3 style="color: var(--primary-color); font-size: 1.1rem;">
-                {{ train.train_name }} <span style="font-weight: 500; font-size: 0.9rem;">(#{{ train.train_number }})</span>
+            <h3 style="color: var(--railway-navy); font-size: 1.15rem;">
+                {{ train.train_name }} <span style="font-size: 0.9rem; font-weight: 500;">(#{{ train.train_number }})</span>
             </h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">
-                {{ train.source_station }} &rarr; {{ train.dest_station }} &bull; Class: <strong>{{ travel_class }}</strong> &bull; Quota: <strong>{{ quota }}</strong> &bull; Date: <strong>{{ travel_date }}</strong>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                {{ train.source_station }} &rarr; {{ train.dest_station }} &bull;
+                Class: <strong>{{ travel_class }}</strong> ({{ travel_class_name }}) &bull;
+                Quota: <strong>{{ quota }}</strong> &bull;
+                Date: <strong>{{ travel_date }}</strong>
             </p>
         </div>
         <div style="text-align: right;">
-            <span style="font-size: 0.8rem; color: var(--text-muted);">Base Fare per passenger:</span>
-            <div style="font-size: 1.25rem; font-weight: 700; color: #047857;" id="baseFareAmount" data-per-passenger="{{ fare }}">
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Base Fare per passenger:</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--success-green);" id="baseFareAmount" data-per-passenger="{{ fare }}">
                 &#8377;{{ fare }}
             </div>
+            <span class="badge badge-success" style="font-size: 0.7rem;">{{ avail.status_text }}</span>
         </div>
     </div>
 </div>
@@ -57,6 +63,7 @@
     <input type="hidden" name="quota" value="{{ quota }}">
     <input type="hidden" name="fare" value="{{ fare }}">
 
+    <!-- Passenger Roster Section -->
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">&#128101; Passenger Information</h2>
@@ -66,9 +73,9 @@
         </div>
 
         <div id="passengerList">
-            <div class="passenger-row card" style="padding: 1rem; margin-bottom: 1rem;">
+            <div class="passenger-row card" style="padding: 1rem; margin-bottom: 1rem; background: #fafafa;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                    <strong>Passenger #1 (Primary)</strong>
+                    <strong>Passenger #1 (Primary Passenger)</strong>
                     <span class="badge badge-info">Adult</span>
                 </div>
                 <div class="form-grid">
@@ -105,34 +112,36 @@
         </div>
     </div>
 
-    <!-- Contact Details Card -->
+    <!-- Contact Details -->
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">&#128222; Contact & Notification Details</h2>
+            <h2 class="card-title">&#128222; Contact & Electronic Ticket Delivery</h2>
         </div>
         <div class="form-grid">
             <div class="form-group">
-                <label for="contactMobile">Mobile Number (for SMS confirmation) *</label>
-                <input type="tel" name="contact_mobile" id="contactMobile" class="form-control" placeholder="9876543210" pattern="[0-9]{10}" required>
+                <label for="contactMobile">Mobile Number (for SMS & verification) *</label>
+                <input type="tel" name="contact_mobile" id="contactMobile" class="form-control" placeholder="9876543210" pattern="[0-9]{10}" required value="9876543210">
             </div>
             <div class="form-group">
-                <label for="contactEmail">Email Address (for e-Ticket PDF) *</label>
-                <input type="email" name="contact_email" id="contactEmail" class="form-control" placeholder="traveler@example.com" required>
+                <label for="contactEmail">Email Address (for Electronic Reservation Slip) *</label>
+                <input type="email" name="contact_email" id="contactEmail" class="form-control" placeholder="traveler@example.com" required value="{{ session.get('email', 'traveler@example.com') }}">
             </div>
         </div>
     </div>
 
-    <!-- Summary Total & Submit -->
+    <!-- Total Summary Card & Submit -->
     <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">Estimated Total (incl. &#8377;40 reservation surcharge per seat):</div>
-            <div style="font-size: 1.6rem; font-weight: 800; color: var(--primary-color);" id="totalFareAmount">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Estimated Total (Fare + &#8377;40 reservation charge per passenger):
+            </div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--railway-navy);" id="totalFareAmount">
                 &#8377;{{ (fare + 40)|round|int }}
             </div>
         </div>
 
-        <button type="submit" class="btn btn-accent" style="padding: 0.8rem 2.5rem; font-size: 1.05rem;">
-            Continue to Review &rarr;
+        <button type="submit" class="btn btn-railway" style="padding: 0.8rem 2.5rem; font-size: 1.05rem;">
+            Proceed to Review &rarr;
         </button>
     </div>
 </form>

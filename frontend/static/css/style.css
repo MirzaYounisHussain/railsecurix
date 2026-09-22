@@ -1,30 +1,43 @@
 /* ==========================================================================
-   RailSim Express - Modern Simulated Online Ticket Booking UI
-   Branding: Original Research Prototype Theme
-   Accessibility & Responsive Design Compliant
+   RailSim Express - Professional Railway Reservation Portal
+   Design: Inspired by common Indian railway booking patterns & IRCTC workflow
+   Accessibility, Responsive Layout & Fast Performance Compliant
    ========================================================================== */
 
 :root {
-    --primary-color: #0d3b66;
-    --primary-hover: #092745;
-    --accent-color: #0077b6;
-    --accent-light: #e0f2fe;
-    --accent-hover: #0284c7;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --bg-main: #f8fafc;
-    --bg-card: #ffffff;
-    --text-main: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --railway-navy: #0f2e5a;
+    --railway-blue: #0066cc;
+    --railway-blue-hover: #0052a3;
+    --railway-light-blue: #e6f0fa;
+    --railway-dark: #0a192f;
+    --railway-gray: #f4f6f9;
+    --railway-border: #d1d5db;
+
+    --success-green: #059669;
+    --success-bg: #ecfdf5;
+    --success-border: #a7f3d0;
+
+    --rac-amber: #d97706;
+    --rac-bg: #fffbeb;
+    --rac-border: #fde68a;
+
+    --wl-red: #dc2626;
+    --wl-bg: #fef2f2;
+    --wl-border: #fecaca;
+
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -35,8 +48,8 @@
 
 body {
     font-family: var(--font-sans);
-    background-color: var(--bg-main);
-    color: var(--text-main);
+    background-color: var(--railway-gray);
+    color: var(--text-primary);
     line-height: 1.5;
     min-height: 100vh;
     display: flex;
@@ -44,29 +57,12 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Top Research Disclaimer Banner
-   -------------------------------------------------------------------------- */
-.research-disclaimer {
-    background-color: #1e293b;
-    color: #f1f5f9;
-    font-size: 0.78rem;
-    padding: 0.4rem 1rem;
-    text-align: center;
-    border-bottom: 2px solid var(--accent-color);
-    letter-spacing: 0.02em;
-}
-
-.research-disclaimer strong {
-    color: #38bdf8;
-}
-
-/* --------------------------------------------------------------------------
-   Navigation Bar
+   Header & Navigation
    -------------------------------------------------------------------------- */
 .navbar {
-    background-color: var(--primary-color);
+    background-color: var(--railway-navy);
     color: #ffffff;
-    padding: 0.85rem 2rem;
+    padding: 0.75rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -79,31 +75,36 @@ body {
 .nav-brand {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
     text-decoration: none;
     color: #ffffff;
-    font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: -0.02em;
 }
 
-.nav-brand .brand-logo-badge {
-    background: linear-gradient(135deg, #0284c7, #38bdf8);
+.brand-badge {
+    background: var(--railway-blue);
     color: #ffffff;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
+    letter-spacing: -0.05em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.nav-brand .sub-title {
-    font-size: 0.75rem;
-    font-weight: 400;
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.brand-sub {
+    font-size: 0.72rem;
     color: #93c5fd;
+    font-weight: 400;
     display: block;
     margin-top: -2px;
 }
@@ -111,12 +112,12 @@ body {
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1rem;
     list-style: none;
 }
 
 .nav-links a {
-    color: #e2e8f0;
+    color: #e5e7eb;
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
@@ -127,20 +128,31 @@ body {
 
 .nav-links a:hover,
 .nav-links a.active {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.15);
     color: #ffffff;
 }
 
-.nav-user-badge {
-    background-color: rgba(2, 132, 199, 0.25);
-    border: 1px solid #38bdf8;
-    color: #bae6fd;
-    padding: 0.35rem 0.75rem;
+.nav-user-indicator {
+    background-color: rgba(0, 102, 204, 0.35);
+    border: 1px solid #60a5fa;
+    color: #dbeafe;
+    padding: 0.35rem 0.85rem;
     border-radius: 9999px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     display: flex;
     align-items: center;
     gap: 0.4rem;
+}
+
+.nav-admin-badge {
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    margin-left: 0.25rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -150,12 +162,12 @@ body {
     flex: 1;
     max-width: 1180px;
     width: 100%;
-    margin: 1.75rem auto;
-    padding: 0 1.25rem;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
 }
 
 .container-narrow {
-    max-width: 680px;
+    max-width: 720px;
     margin: 0 auto;
 }
 
@@ -164,33 +176,33 @@ body {
 }
 
 .page-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary-color);
+    color: var(--railway-navy);
 }
 
 .page-subtitle {
-    color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
     margin-top: 0.25rem;
 }
 
 /* --------------------------------------------------------------------------
-   Workflow Stepper Bar
+   Railway 5-Step Booking Stepper
    -------------------------------------------------------------------------- */
-.booking-stepper {
+.railway-stepper {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: #ffffff;
-    padding: 0.85rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     border-radius: var(--radius-md);
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.5rem;
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--railway-border);
 }
 
-.step-item {
+.stepper-step {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -199,84 +211,178 @@ body {
     color: var(--text-muted);
 }
 
-.step-item.active {
-    color: var(--primary-color);
+.stepper-step.active {
+    color: var(--railway-blue);
     font-weight: 700;
 }
 
-.step-item.completed {
-    color: var(--success-color);
+.stepper-step.completed {
+    color: var(--success-green);
+    font-weight: 600;
 }
 
-.step-number {
-    width: 26px;
-    height: 26px;
+.stepper-num {
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background-color: #f1f5f9;
-    border: 1px solid #cbd5e1;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
 }
 
-.step-item.active .step-number {
-    background-color: var(--accent-color);
+.stepper-step.active .stepper-num {
+    background-color: var(--railway-blue);
     color: #ffffff;
-    border-color: var(--accent-color);
+    border-color: var(--railway-blue);
 }
 
-.step-item.completed .step-number {
-    background-color: var(--success-color);
+.stepper-step.completed .stepper-num {
+    background-color: var(--success-green);
     color: #ffffff;
-    border-color: var(--success-color);
+    border-color: var(--success-green);
 }
 
-.step-divider {
+.stepper-divider {
     flex: 1;
     height: 2px;
-    background-color: #e2e8f0;
+    background-color: #e5e7eb;
     margin: 0 0.75rem;
 }
 
 /* --------------------------------------------------------------------------
-   Cards & Panels
+   Railway Train Search Card (IRCTC Workflow Inspired)
    -------------------------------------------------------------------------- */
-.card {
-    background: var(--bg-card);
+.search-card {
+    background: #ffffff;
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--railway-border);
     box-shadow: var(--shadow-sm);
-    padding: 1.5rem;
+    overflow: hidden;
     margin-bottom: 1.5rem;
 }
 
-.card-header {
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.85rem;
-    margin-bottom: 1.25rem;
+.search-card-header {
+    background: var(--railway-navy);
+    color: #ffffff;
+    padding: 0.85rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.card-title {
+.search-card-header h2 {
     font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--primary-color);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* --------------------------------------------------------------------------
-   Forms & Inputs
-   -------------------------------------------------------------------------- */
-.form-grid {
+.search-card-body {
+    padding: 1.5rem;
+}
+
+.station-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.75rem;
+    align-items: flex-end;
+    margin-bottom: 1.25rem;
+}
+
+.swap-btn-wrapper {
+    margin-bottom: 0.35rem;
+}
+
+.btn-swap {
+    background: #ffffff;
+    border: 1.5px solid var(--railway-border);
+    color: var(--railway-blue);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-swap:hover {
+    background: var(--railway-light-blue);
+    border-color: var(--railway-blue);
+    transform: rotate(180deg);
+}
+
+.search-parameters-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Quick Date Chips */
+.date-chips {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+
+.date-chip {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: var(--text-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.date-chip:hover,
+.date-chip.active {
+    background: var(--railway-light-blue);
+    color: var(--railway-blue);
+    border-color: var(--railway-blue);
+    font-weight: 600;
+}
+
+/* Railway Concession Checkboxes */
+.railway-options-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 0.75rem 0;
+    border-top: 1px dashed #e5e7eb;
+    border-bottom: 1px dashed #e5e7eb;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.railway-option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.search-action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 1rem;
 }
 
+/* --------------------------------------------------------------------------
+   Form Controls
+   -------------------------------------------------------------------------- */
 .form-group {
-    margin-bottom: 1.1rem;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -285,41 +391,43 @@ body {
 .form-group label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #334155;
+    color: #374151;
 }
 
 .form-control {
-    padding: 0.6rem 0.85rem;
-    border: 1.5px solid var(--border-color);
+    padding: 0.65rem 0.85rem;
+    border: 1.5px solid var(--railway-border);
     border-radius: var(--radius-sm);
     font-size: 0.92rem;
     font-family: inherit;
-    color: var(--text-main);
+    color: var(--text-primary);
     background-color: #ffffff;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
 }
 
 .form-control:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.15);
+    border-color: var(--railway-blue);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
 }
 
-.form-text {
-    font-size: 0.75rem;
-    color: var(--text-muted);
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
 }
 
 /* --------------------------------------------------------------------------
-   Buttons & Actions
+   Buttons
    -------------------------------------------------------------------------- */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    padding: 0.65rem 1.25rem;
-    font-size: 0.92rem;
+    padding: 0.65rem 1.5rem;
+    font-size: 0.95rem;
     font-weight: 600;
     border-radius: var(--radius-sm);
     border: none;
@@ -329,47 +437,308 @@ body {
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
+    background-color: var(--railway-navy);
     color: #ffffff;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background-color: #0c2345;
 }
 
-.btn-accent {
-    background-color: var(--accent-color);
+.btn-railway {
+    background-color: #ea580c; /* High visibility railway CTA */
     color: #ffffff;
 }
 
-.btn-accent:hover {
-    background-color: var(--accent-hover);
+.btn-railway:hover {
+    background-color: #c2410c;
 }
 
 .btn-secondary {
-    background-color: #f1f5f9;
-    color: #334155;
-    border: 1px solid var(--border-color);
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid var(--railway-border);
 }
 
 .btn-secondary:hover {
-    background-color: #e2e8f0;
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
 }
 
-.btn-block {
-    width: 100%;
+.btn-success {
+    background-color: var(--success-green);
+    color: #ffffff;
+}
+
+.btn-success:hover {
+    background-color: #047857;
 }
 
 /* --------------------------------------------------------------------------
-   Badges & Availability Status
+   Train Result Cards & Class Availability Matrix
    -------------------------------------------------------------------------- */
+.train-card {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--railway-border);
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.train-card-header {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.train-title-group h3 {
+    font-size: 1.1rem;
+    color: var(--railway-navy);
+    font-weight: 700;
+}
+
+.train-runs-on {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.day-badge {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+.day-badge.active {
+    background: #059669;
+    color: #ffffff;
+}
+
+.train-schedule-bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #ffffff;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.schedule-station {
+    display: flex;
+    flex-direction: column;
+}
+
+.schedule-station.dest {
+    text-align: right;
+}
+
+.schedule-time {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.schedule-name {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.schedule-duration {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.duration-track {
+    position: relative;
+    height: 2px;
+    background: #cbd5e1;
+    margin: 0.35rem 0;
+    min-width: 140px;
+}
+
+.duration-track::before,
+.duration-track::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--railway-blue);
+}
+
+.duration-track::before { left: 0; }
+.duration-track::after { right: 0; }
+
+/* Class Availability Tiles Grid */
+.availability-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: #fafafa;
+}
+
+.avail-tile {
+    background: #ffffff;
+    border: 1.5px solid #d1d5db;
+    border-radius: var(--radius-sm);
+    padding: 0.65rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.avail-tile:hover {
+    border-color: var(--railway-blue);
+    box-shadow: var(--shadow-sm);
+}
+
+.avail-tile.selected {
+    border-color: var(--railway-blue);
+    background-color: var(--railway-light-blue);
+    box-shadow: 0 0 0 2px var(--railway-blue);
+}
+
+.avail-tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.avail-class-code {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--railway-navy);
+}
+
+.avail-fare {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+.avail-status {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    display: inline-block;
+    text-align: center;
+    margin-top: 0.35rem;
+}
+
+.avail-status.available {
+    background-color: var(--success-bg);
+    color: var(--success-green);
+    border: 1px solid var(--success-border);
+}
+
+.avail-status.rac {
+    background-color: var(--rac-bg);
+    color: var(--rac-amber);
+    border: 1px solid var(--rac-border);
+}
+
+.avail-status.wl {
+    background-color: var(--wl-bg);
+    color: var(--wl-red);
+    border: 1px solid var(--wl-border);
+}
+
+.train-card-footer {
+    padding: 0.75rem 1.25rem;
+    background: #ffffff;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --------------------------------------------------------------------------
+   Cards, Panels & Tables
+   -------------------------------------------------------------------------- */
+.card {
+    background: #ffffff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--railway-border);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.card-header {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--railway-navy);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.railway-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.railway-table th {
+    background-color: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 0.65rem 0.75rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.railway-table td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Badges */
 .badge {
     display: inline-block;
-    padding: 0.25rem 0.6rem;
+    padding: 0.2rem 0.5rem;
     border-radius: var(--radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
+}
+
+.badge-info {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
 }
 
 .badge-success {
@@ -390,216 +759,122 @@ body {
     border: 1px solid #fecaca;
 }
 
-.badge-info {
-    background-color: #f0f9ff;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
-}
-
-/* --------------------------------------------------------------------------
-   Train Card & Selection Layout
-   -------------------------------------------------------------------------- */
-.train-card {
-    background: #ffffff;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.train-card:hover {
-    border-color: #cbd5e1;
-    box-shadow: var(--shadow-md);
-}
-
-.train-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.train-name-group h3 {
-    font-size: 1.15rem;
-    color: var(--primary-color);
-}
-
-.train-schedule-grid {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 1.5rem;
-    align-items: center;
-    background: #f8fafc;
+/* Alerts */
+.alert {
     padding: 0.85rem 1.25rem;
     border-radius: var(--radius-sm);
-    margin-bottom: 1rem;
-}
-
-.station-time {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #0f172a;
-}
-
-.station-name {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.travel-duration {
-    text-align: center;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.duration-line {
-    position: relative;
-    height: 2px;
-    background: #cbd5e1;
-    margin: 0.35rem 0;
-    min-width: 120px;
-}
-
-/* Class selection blocks */
-.class-blocks-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.class-block {
-    border: 1.5px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 0.65rem;
-    cursor: pointer;
-    background: #ffffff;
-    transition: all 0.15s ease;
-}
-
-.class-block:hover {
-    border-color: var(--accent-color);
-    background-color: #f0f9ff;
-}
-
-.class-block.selected {
-    border-color: var(--accent-color);
-    background-color: #e0f2fe;
-    box-shadow: 0 0 0 2px var(--accent-color);
-}
-
-.class-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--primary-color);
-}
-
-.class-fare {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #047857;
-    margin: 0.2rem 0;
-}
-
-.class-status {
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-/* --------------------------------------------------------------------------
-   Alerts & Notifications
-   -------------------------------------------------------------------------- */
-.alert {
-    padding: 0.85rem 1.15rem;
-    border-radius: var(--radius-sm);
     margin-bottom: 1.25rem;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
 }
 
-.alert-info {
-    background-color: #eff6ff;
-    border: 1px solid #bfdbfe;
-    color: #1e40af;
-}
-
-.alert-success {
-    background-color: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-}
-
-.alert-warning {
-    background-color: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #92400e;
-}
-
-.alert-danger {
-    background-color: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #991b1b;
-}
+.alert-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+.alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.alert-warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.alert-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 
 /* --------------------------------------------------------------------------
-   Confirmation Ticket Card
+   Electronic Reservation Slip (ERS Ticket Slip)
    -------------------------------------------------------------------------- */
-.ticket-container {
+.ers-ticket {
     background: #ffffff;
-    border: 2px dashed #94a3b8;
-    border-radius: var(--radius-lg);
-    padding: 2rem;
-    position: relative;
-    box-shadow: var(--shadow-md);
+    border: 2px solid #94a3b8;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
 }
 
-.ticket-pnr-banner {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+.ers-header {
+    background: var(--railway-navy);
     color: #ffffff;
-    padding: 1rem 1.5rem;
-    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 }
 
-.ticket-pnr-title {
-    font-size: 0.85rem;
+.ers-pnr-title {
+    font-size: 0.8rem;
+    color: #93c5fd;
+    text-transform: uppercase;
     letter-spacing: 0.05em;
-    opacity: 0.9;
 }
 
-.ticket-pnr-code {
+.ers-pnr-code {
     font-size: 1.6rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
 }
 
 /* --------------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------------- */
 .footer {
-    background-color: #0f172a;
-    color: #94a3b8;
-    padding: 1.75rem 2rem;
+    background-color: var(--railway-dark);
+    color: #9ca3af;
+    padding: 1.5rem 2rem;
     font-size: 0.82rem;
     text-align: center;
     margin-top: auto;
-    border-top: 1px solid #1e293b;
+    border-top: 1px solid #1f2937;
 }
 
 .footer a {
-    color: #38bdf8;
+    color: #60a5fa;
     text-decoration: none;
 }
 
 .footer-meta {
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
     font-size: 0.75rem;
-    color: #64748b;
+    color: #6b7280;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Media Queries
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.65rem 1rem;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .station-row {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-swap {
+        margin: 0.25rem auto;
+        transform: rotate(90deg);
+    }
+
+    .btn-swap:hover {
+        transform: rotate(270deg);
+    }
+
+    .railway-stepper {
+        font-size: 0.75rem;
+        padding: 0.5rem;
+    }
+
+    .train-schedule-bar {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    .schedule-station.dest {
+        text-align: center;
+    }
 }

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}RailSim Express - Access Forbidden (403){% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="text-align: center; padding: 3rem 1rem;">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem; color: #dc2626;">&#128737;</div>
+    <h1 style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.75rem;">403 - Access Forbidden</h1>
+    <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.6;">
+        You do not have the required administrative privileges to view this cybersecurity diagnostics page or management console.
+        This access violation has been logged for behavioral audit.
+    </p>
+
+    <div class="card" style="background: #fef2f2; border-color: #fecaca; text-align: left; margin-bottom: 2rem;">
+        <div style="font-size: 0.85rem; color: #991b1b;">
+            <strong>Security Notice:</strong> The requested endpoint is restricted to authenticated system administrators with the <code>admin</code> role. Standard traveler accounts cannot access internal telemetry or administrative routes.
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 1rem;">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">&larr; Return to Home</a>
+        <a href="{{ url_for('search') }}" class="btn btn-secondary">Search Trains</a>
+    </div>
+</div>
+{% endblock %}

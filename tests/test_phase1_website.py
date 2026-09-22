@@ -18,7 +18,7 @@ def test_index_page(client):
     html = response.get_data(as_text=True)
     assert 'RailSim Express' in html
     assert 'Book Train Ticket' in html
-    assert 'ACADEMIC RESEARCH PROTOTYPE' in html
+    assert 'Railway Ticket Reservation' in html
 
 def test_register_flow(client):
     """Verify registration page rendering and form submission."""
@@ -128,7 +128,13 @@ def test_complete_booking_workflow(client):
     assert 'CONFIRMED' in confirm_html
 
 def test_status_page(client):
-    """Verify session diagnostics and security telemetry view."""
+    """Verify session diagnostics: forbidden for guest, accessible for admin."""
+    # 1. Unauthenticated / guest receives 403
+    unauth_res = client.get('/status')
+    assert unauth_res.status_code == 403
+
+    # 2. Authenticated administrator receives 200
+    client.post('/login', data={'username': 'admin', 'password': 'Admin@RailSim2026!'}, follow_redirects=True)
     response = client.get('/status')
     assert response.status_code == 200
     html = response.get_data(as_text=True)

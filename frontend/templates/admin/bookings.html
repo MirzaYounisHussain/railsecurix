@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% set active_page = "admin_bookings" %}
+
+{% block title %}RailSim Express - Global Bookings Log{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">&#128645; Global Reservation Roster</h1>
+    <p class="page-subtitle">Complete registry of electronic reservations across all simulated trains and quotas.</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Bookings ({{ bookings|length }})</h2>
+    </div>
+
+    {% if bookings %}
+    <div class="table-responsive">
+        <table class="railway-table">
+            <thead>
+                <tr>
+                    <th>PNR</th>
+                    <th>Account</th>
+                    <th>Train Details</th>
+                    <th>Route</th>
+                    <th>Date</th>
+                    <th>Class / Quota</th>
+                    <th>Pax</th>
+                    <th>Total Fare</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td style="font-weight: 700; color: var(--railway-navy);">{{ b.pnr }}</td>
+                    <td>{{ b.full_name }} (<code>{{ b.username }}</code>)</td>
+                    <td>{{ b.train_name }} (#{{ b.train_number }})</td>
+                    <td>{{ b.source_station }} &rarr; {{ b.dest_station }}</td>
+                    <td>{{ b.travel_date }}</td>
+                    <td>{{ b.travel_class }} / {{ b.quota }}</td>
+                    <td>{{ b.passenger_count }}</td>
+                    <td style="font-weight: 700; color: var(--success-green);">&#8377;{{ b.total_fare }}</td>
+                    <td><span class="badge badge-success">{{ b.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.9rem;">No bookings found in the system.</p>
+    {% endif %}
+</div>
+{% endblock %}

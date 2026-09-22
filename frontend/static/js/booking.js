@@ -1,17 +1,20 @@
 /**
- * RailSim Express - Interactive Booking Workflow Script
- * Handles train selection, passenger addition, dynamic fare updates, and simulated payment.
+ * RailSim Express - Railway Booking Interactions & Workflow Script
+ * Handles station swapping, quick date chips, dynamic class selection,
+ * passenger roster management, and simulated payment.
+ * Preserves all DOM events for behavioral telemetry collection.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     initStationSwap();
+    initQuickDateChips();
     initClassSelector();
     initPassengerManagement();
     initSimulatedPayment();
 });
 
 /**
- * 1. Station Swap Button Helper
+ * 1. Station Swap Button Helper (From <-> To)
  */
 function initStationSwap() {
     const swapBtn = document.getElementById('swapStationsBtn');
@@ -24,30 +27,63 @@ function initStationSwap() {
             const tempVal = sourceSelect.value;
             sourceSelect.value = destSelect.value;
             destSelect.value = tempVal;
+
+            // Trigger change event for telemetry tracking
+            sourceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            destSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
     }
 }
 
 /**
- * 2. Class Selection Block Interactions on Search Results
+ * 2. Quick Date Selector Chips (Today, Tomorrow, +2 Days)
+ */
+function initQuickDateChips() {
+    const dateChips = document.querySelectorAll('.date-chip');
+    const travelDateInput = document.getElementById('travelDate');
+
+    if (!dateChips.length || !travelDateInput) return;
+
+    dateChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            dateChips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+
+            const offset = parseInt(chip.getAttribute('data-days-offset') || '0', 10);
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + offset);
+
+            const yyyy = targetDate.getFullYear();
+            const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(targetDate.getDate()).padStart(2, '0');
+
+            travelDateInput.value = `${yyyy}-${mm}-${dd}`;
+            travelDateInput.dispatchEvent(new Event('input', { bubbles: true }));
+            travelDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+}
+
+/**
+ * 3. Class Availability Matrix Interaction on Train Results
  */
 function initClassSelector() {
-    const classBlocks = document.querySelectorAll('.class-block');
+    const availTiles = document.querySelectorAll('.avail-tile');
     const selectedClassInput = document.getElementById('selectedClassInput');
     const selectedTrainInput = document.getElementById('selectedTrainInput');
 
-    classBlocks.forEach(block => {
-        block.addEventListener('click', () => {
-            // Unselect sibling blocks in the same card
-            const parentCard = block.closest('.train-card');
-            if (parentCard) {
-                parentCard.querySelectorAll('.class-block').forEach(b => b.classList.remove('selected'));
-            }
-            block.classList.add('selected');
+    availTiles.forEach(tile => {
+        tile.addEventListener('click', () => {
+            const parentCard = tile.closest('.train-card');
+            if (!parentCard) return;
 
-            const trainId = block.getAttribute('data-train-id');
-            const classCode = block.getAttribute('data-class-code');
-            const fare = block.getAttribute('data-fare');
+            // Deselect other tiles in same train card
+            parentCard.querySelectorAll('.avail-tile').forEach(t => t.classList.remove('selected'));
+            tile.classList.add('selected');
+
+            const trainId = tile.getAttribute('data-train-id');
+            const classCode = tile.getAttribute('data-class-code');
+            const fare = tile.getAttribute('data-fare');
 
             if (selectedClassInput) selectedClassInput.value = classCode;
             if (selectedTrainInput) selectedTrainInput.value = trainId;
@@ -55,14 +91,16 @@ function initClassSelector() {
             const bookBtn = parentCard.querySelector('.book-train-btn');
             if (bookBtn) {
                 bookBtn.disabled = false;
-                bookBtn.textContent = `Book ${classCode} - ₹${fare}`;
+                bookBtn.classList.remove('btn-secondary');
+                bookBtn.classList.add('btn-railway');
+                bookBtn.textContent = `Book ${classCode} (₹${fare})`;
             }
         });
     });
 }
 
 /**
- * 3. Dynamic Passenger Form (Add/Remove Passengers & Fare Update)
+ * 4. Dynamic Passenger Management (Add/Remove & Live Fare Update)
  */
 function initPassengerManagement() {
     const addPassengerBtn = document.getElementById('addPassengerBtn');
@@ -78,7 +116,7 @@ function initPassengerManagement() {
             const baseFarePerPassenger = parseFloat(baseFareElem.getAttribute('data-per-passenger') || '650');
             const reservationCharge = 40;
             const total = (baseFarePerPassenger + reservationCharge) * rowCount;
-            totalFareElem.textContent = `₹${total.toFixed(2)}`;
+            totalFareElem.textContent = `₹${total.toFixed(0)}`;
         }
     }
 
@@ -86,7 +124,7 @@ function initPassengerManagement() {
         addPassengerBtn.addEventListener('click', () => {
             const currentRows = passengerList.querySelectorAll('.passenger-row').length;
             if (currentRows >= 6) {
-                alert('Maximum 6 passengers allowed per booking.');
+                alert('Maximum 6 passengers allowed per booking in simulated quota.');
                 return;
             }
 
@@ -103,7 +141,7 @@ function initPassengerManagement() {
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Full Name *</label>
-                        <input type="text" name="passenger_name[]" class="form-control" placeholder="Name as on Gov ID" required>
+                        <input type="text" name="passenger_name[]" class="form-control" placeholder="Name as on Gov ID" required autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Age *</label>
@@ -142,7 +180,7 @@ function initPassengerManagement() {
         });
     }
 
-    // Attach listener to any initial remove buttons
+    // Attach listeners to any pre-existing remove buttons
     document.querySelectorAll('.remove-passenger-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const rows = passengerList.querySelectorAll('.passenger-row');
@@ -159,7 +197,7 @@ function initPassengerManagement() {
 }
 
 /**
- * 4. Simulated Payment Processing
+ * 5. Simulated Payment Submission
  */
 function initSimulatedPayment() {
     const paymentForm = document.getElementById('simulatedPaymentForm');
@@ -167,16 +205,12 @@ function initSimulatedPayment() {
     const paymentStatusBox = document.getElementById('paymentStatusBox');
 
     if (paymentForm && payBtn) {
-        paymentForm.addEventListener('submit', (e) => {
+        paymentForm.addEventListener('submit', () => {
             payBtn.disabled = true;
-            payBtn.innerHTML = `
-                <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px;"></span>
-                Authorizing Simulated Payment...
-            `;
+            payBtn.innerHTML = `Authorizing Simulated Payment...`;
             if (paymentStatusBox) {
                 paymentStatusBox.style.display = 'block';
             }
-            // Form submits naturally to confirmation endpoint after short visual feedback
         });
     }
 }

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% set active_page = "my_bookings" %}
+
+{% block title %}RailSim Express - My Bookings{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">&#128203; My Bookings</h1>
+        <p class="page-subtitle">Your reserved train journey history and Electronic Reservation Slips.</p>
+    </div>
+    <a href="{{ url_for('search') }}" class="btn btn-railway">
+        &#128642; Book New Ticket
+    </a>
+</div>
+
+{% if bookings %}
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for b in bookings %}
+        <div class="card" style="padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--railway-border); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                <div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">PNR NUMBER:</span>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--railway-navy); letter-spacing: 0.05em;">
+                        {{ b.pnr }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge badge-success">{{ b.status }}</span>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+                        Booked on: {{ b.created_at }}
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: center;">
+                <div>
+                    <div style="font-weight: 700; color: var(--text-primary);">{{ b.train_name }}</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">Train #{{ b.train_number }}</div>
+                </div>
+
+                <div>
+                    <div style="font-size: 0.88rem; font-weight: 600;">{{ b.source_station }} &rarr; {{ b.dest_station }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Travel Date: <strong>{{ b.travel_date }}</strong></div>
+                </div>
+
+                <div>
+                    <div style="font-size: 0.85rem;">Class: <strong>{{ b.travel_class }}</strong> &bull; Quota: <strong>{{ b.quota }}</strong></div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Passengers: <strong>{{ b.passenger_count }}</strong></div>
+                </div>
+
+                <div style="text-align: right;">
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Total Paid:</div>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: var(--success-green);">&#8377;{{ b.total_fare }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">&#128645;</div>
+        <h3 style="color: var(--railway-navy); margin-bottom: 0.4rem;">No Bookings Found</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            You have not booked any train tickets yet. Search routes and reserve seats in the simulated environment.
+        </p>
+        <a href="{{ url_for('search') }}" class="btn btn-railway">
+            &#128269; Search Trains Now
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set active_page = "admin_users" %}
+
+{% block title %}RailSim Express - User Directory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">&#128101; Traveler & Administrative Accounts</h1>
+    <p class="page-subtitle">Directory of all registered user identities and assigned authorization roles.</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">User Accounts ({{ users|length }})</h2>
+    </div>
+
+    <div class="table-responsive">
+        <table class="railway-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Total Bookings</th>
+                    <th>Registered At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>#{{ u.id }}</td>
+                    <td style="font-weight: 600;">{{ u.full_name }}</td>
+                    <td><code>{{ u.username }}</code></td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        <span class="badge {% if u.role == 'admin' %}badge-danger{% else %}badge-info{% endif %}">
+                            {{ u.role|upper }}
+                        </span>
+                    </td>
+                    <td><strong>{{ u.total_bookings }}</strong></td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">{{ u.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

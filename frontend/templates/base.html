@@ -3,45 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}RailSim Express - Simulated Ticket Booking{% endblock %}</title>
+    <title>{% block title %}RailSim Express - Railway Ticket Reservation{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body>
 
-    <!-- Research & Prototype Disclaimer Notice -->
-    <div class="research-disclaimer">
-        <strong>ACADEMIC RESEARCH PROTOTYPE:</strong> Simulated railway reservation environment for AI behavioral bot detection & adaptive cybersecurity.
-        <strong>NO REAL TRANSACTIONS &bull; NO REAL IRCTC INTEGRATION &bull; DEMO USE ONLY</strong>
-    </div>
-
-    <!-- Navigation Bar -->
+    <!-- Main Navigation Bar -->
     <nav class="navbar">
         <a href="{{ url_for('index') }}" class="nav-brand">
-            <div class="brand-logo-badge">R</div>
+            <div class="brand-badge">R</div>
             <div>
-                <div>RailSim Express</div>
-                <span class="sub-title">AI-Secured Reservation Portal</span>
+                <div class="brand-name">RailSim Express</div>
+                <span class="brand-sub">AI-Secured Railway Reservation Portal</span>
             </div>
         </a>
 
         <ul class="nav-links">
-            <li><a href="{{ url_for('index') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
-            <li><a href="{{ url_for('search') }}" class="{% if active_page == 'search' %}active{% endif %}">Book Ticket</a></li>
-            <li><a href="{{ url_for('status') }}" class="{% if active_page == 'status' %}active{% endif %}">Session & Security</a></li>
-            {% if session.get('user_id') %}
-                <li class="nav-user-badge">
-                    <span>&#128100;</span> {{ session.get('username', 'Traveler') }}
+            {% if session.get('user_id') and session.get('role') == 'admin' %}
+                <!-- Admin Navigation -->
+                <li><a href="{{ url_for('admin_dashboard') }}" class="{% if active_page == 'admin_dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{{ url_for('admin_users') }}" class="{% if active_page == 'admin_users' %}active{% endif %}">Users</a></li>
+                <li><a href="{{ url_for('admin_bookings') }}" class="{% if active_page == 'admin_bookings' %}active{% endif %}">Bookings</a></li>
+                <li><a href="{{ url_for('admin_security') }}" class="{% if active_page == 'admin_security' %}active{% endif %}">Security Analytics</a></li>
+                <li><a href="{{ url_for('admin_security') }}" class="{% if active_page == 'admin_sessions' %}active{% endif %}">Session Monitoring</a></li>
+                <li><a href="{{ url_for('admin_bot_detection') }}" class="{% if active_page == 'admin_bot_detection' %}active{% endif %}">Bot Detection</a></li>
+                <li><a href="{{ url_for('profile') }}" class="{% if active_page == 'profile' %}active{% endif %}">Admin Profile</a></li>
+                <li class="nav-user-indicator">
+                    <span>&#128737;</span> {{ session.get('username') }} <span class="nav-admin-badge">ADMIN</span>
+                </li>
+                <li><a href="{{ url_for('logout') }}" style="color: #fca5a5;">Logout</a></li>
+            {% elif session.get('user_id') %}
+                <!-- Normal User Navigation -->
+                <li><a href="{{ url_for('index') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+                <li><a href="{{ url_for('search') }}" class="{% if active_page == 'search' %}active{% endif %}">Train Search</a></li>
+                <li><a href="{{ url_for('my_bookings') }}" class="{% if active_page == 'my_bookings' %}active{% endif %}">My Bookings</a></li>
+                <li><a href="{{ url_for('profile') }}" class="{% if active_page == 'profile' %}active{% endif %}">Profile</a></li>
+                <li class="nav-user-indicator">
+                    <span>&#128100;</span> {{ session.get('username') }}
                 </li>
                 <li><a href="{{ url_for('logout') }}" style="color: #fca5a5;">Logout</a></li>
             {% else %}
+                <!-- Anonymous Traveler Navigation -->
+                <li><a href="{{ url_for('index') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a></li>
+                <li><a href="{{ url_for('search') }}" class="{% if active_page == 'search' %}active{% endif %}">Train Search</a></li>
                 <li><a href="{{ url_for('login') }}" class="{% if active_page == 'login' %}active{% endif %}">Login</a></li>
-                <li><a href="{{ url_for('register') }}" class="btn btn-accent" style="padding: 0.35rem 0.85rem; font-size: 0.85rem;">Register</a></li>
+                <li><a href="{{ url_for('register') }}" class="btn btn-secondary" style="padding: 0.35rem 0.85rem; font-size: 0.85rem;">Register</a></li>
             {% endif %}
         </ul>
     </nav>
 
-    <!-- Main Page Body -->
+    <!-- Main Content Container -->
     <main class="main-content">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -60,16 +72,16 @@
     <!-- Footer -->
     <footer class="footer">
         <div>
-            <strong>RailSim Express Prototype</strong> &bull; Behavioral Bot Detection & Adaptive Cybersecurity Framework
+            <strong>RailSim Express Prototype</strong> &bull; Indian Railway Booking Pattern & IRCTC-Inspired Reservation Experience
         </div>
         <div class="footer-meta">
-            Session ID: <span id="footerSessionToken">{{ session.get('session_token', 'INIT_SESSION') }}</span> |
-            Client Telemetry: <span id="telemetryStatusBadge" style="color: #38bdf8;">ACTIVE</span> |
-            Strict Localhost Simulation &bull; B.Tech CSE Cybersecurity Project
+            Session: <code>{{ session.get('session_token', 'SESSION_INIT') }}</code> &bull;
+            Client Behavioral Telemetry: <span style="color: #38bdf8; font-weight: 600;">ACTIVE</span> &bull;
+            Simulated Research Environment &bull; Strictly Local Simulation
         </div>
     </footer>
 
-    <!-- Core Scripts -->
+    <!-- Core Interactive Scripts -->
     <script src="{{ url_for('static', filename='js/booking.js') }}"></script>
     <script src="{{ url_for('static', filename='js/telemetry.js') }}"></script>
     {% block scripts_extra %}{% endblock %}

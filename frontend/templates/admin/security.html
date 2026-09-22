@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set active_page = "admin_security" %}
+
+{% block title %}RailSim Express - Security & Session Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">&#128737; Session Monitoring & Behavioral Telemetry</h1>
+        <p class="page-subtitle">Passive biometric analysis, session tokens, and threat scores across active visitors.</p>
+    </div>
+    <span class="badge badge-success">Collector: Active</span>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Live Tracked Sessions ({{ sessions|length }})</h2>
+    </div>
+
+    <div class="table-responsive">
+        <table class="railway-table">
+            <thead>
+                <tr>
+                    <th>Session Token</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>IP Address</th>
+                    <th>Bot Risk Score</th>
+                    <th>Security Action</th>
+                    <th>Last Active</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td><code>{{ s.session_token[:16] }}...</code></td>
+                    <td>{{ s.username or 'Anonymous' }}</td>
+                    <td><span class="badge {% if s.role == 'admin' %}badge-danger{% elif s.role == 'user' %}badge-info{% else %}badge-warning{% endif %}">{{ s.role|upper }}</span></td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">{{ s.ip_address or '127.0.0.1' }}</td>
+                    <td>
+                        <span class="badge {% if s.risk_score > 70 %}badge-danger{% elif s.risk_score > 40 %}badge-warning{% else %}badge-success{% endif %}">
+                            {{ s.risk_score }}/100
+                        </span>
+                    </td>
+                    <td><code>{{ s.security_action }}</code></td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">{{ s.last_active }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

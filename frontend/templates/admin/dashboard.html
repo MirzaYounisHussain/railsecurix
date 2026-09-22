@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set active_page = "admin_dashboard" %}
+
+{% block title %}RailSim Express - Security Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">&#128737; Security & Reservation Administration</h1>
+        <p class="page-subtitle">Real-time monitoring of behavioral bot detection, user sessions, and global bookings.</p>
+    </div>
+    <span class="badge badge-success" style="font-size: 0.82rem;">System Status: Operational</span>
+</div>
+
+<!-- Key Metrics Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <div class="card" style="border-left: 4px solid var(--railway-blue); margin-bottom: 0;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Travelers</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--railway-navy); margin-top: 0.2rem;">{{ total_users }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Registered Accounts</div>
+    </div>
+
+    <div class="card" style="border-left: 4px solid var(--success-green); margin-bottom: 0;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Reservations</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--success-green); margin-top: 0.2rem;">{{ total_bookings }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Confirmed Tickets</div>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #f59e0b; margin-bottom: 0;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Active Sessions</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin-top: 0.2rem;">{{ active_sessions_count }}</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Live Telemetry Channels</div>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #8b5cf6; margin-bottom: 0;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Avg Bot Risk Score</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: #7c3aed; margin-top: 0.2rem;">{{ avg_risk }}/100</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Low Threat Baseline</div>
+    </div>
+</div>
+
+<!-- Recent Global Bookings Table -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Recent System Reservations</h2>
+        <a href="{{ url_for('admin_bookings') }}" class="btn btn-secondary" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">
+            View All Bookings &rarr;
+        </a>
+    </div>
+
+    {% if recent_bookings %}
+    <div class="table-responsive">
+        <table class="railway-table">
+            <thead>
+                <tr>
+                    <th>PNR</th>
+                    <th>Traveler</th>
+                    <th>Train & Route</th>
+                    <th>Journey Date</th>
+                    <th>Class / Quota</th>
+                    <th style="text-align: right;">Fare</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in recent_bookings %}
+                <tr>
+                    <td style="font-weight: 700; color: var(--railway-navy);">{{ b.pnr }}</td>
+                    <td>{{ b.full_name }} (<code>{{ b.username }}</code>)</td>
+                    <td>{{ b.train_name }} ({{ b.source_station }} &rarr; {{ b.dest_station }})</td>
+                    <td>{{ b.travel_date }}</td>
+                    <td>{{ b.travel_class }} / {{ b.quota }}</td>
+                    <td style="text-align: right; font-weight: 700; color: var(--success-green);">&#8377;{{ b.total_fare }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.9rem;">No reservations made yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

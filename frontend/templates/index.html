@@ -1,108 +1,137 @@
 {% extends "base.html" %}
 {% set active_page = "home" %}
 
-{% block title %}RailSim Express - Home & Quick Booking{% endblock %}
+{% block title %}RailSim Express - Railway Ticket Reservation{% endblock %}
 
 {% block content %}
-<div class="page-header" style="text-align: center; margin-bottom: 2rem;">
-    <h1 class="page-title" style="font-size: 2.2rem; color: var(--primary-color);">Secure Railway Ticket Reservation</h1>
-    <p class="page-subtitle" style="font-size: 1.1rem;">
-        Experience seamless online ticket booking with next-generation behavioral bot defense and adaptive cybersecurity.
+<div class="page-header" style="margin-bottom: 1.25rem;">
+    <h1 class="page-title">Railway Ticket Reservation Portal</h1>
+    <p class="page-subtitle">
+        Search trains, inspect real-time simulated availability, and book tickets with adaptive behavioral bot protection.
     </p>
 </div>
 
-<!-- Quick Search Card -->
-<div class="card" style="box-shadow: var(--shadow-md); border-top: 4px solid var(--accent-color);">
-    <div class="card-header">
-        <h2 class="card-title">&#128645; Book Train Ticket</h2>
-        <span class="badge badge-info">Tatkal & General Quota Available</span>
+<!-- Indian Railway Style Search Card -->
+<div class="search-card">
+    <div class="search-card-header">
+        <h2>&#128645; Book Train Ticket</h2>
+        <span class="badge badge-info">Simulated Reservation Matrix</span>
     </div>
 
-    <form action="{{ url_for('results') }}" method="GET" id="quickSearchForm">
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="sourceStation">Origin Station (From) *</label>
-                <select name="source" id="sourceStation" class="form-control" required>
-                    <option value="NDLS">NDLS - New Delhi</option>
-                    <option value="BCT">BCT - Mumbai Central</option>
-                    <option value="HWH">HWH - Howrah Junction</option>
-                    <option value="MAS">MAS - Chennai Central</option>
-                    <option value="SBC">SBC - KSR Bengaluru</option>
-                </select>
+    <div class="search-card-body">
+        <form action="{{ url_for('results') }}" method="GET" id="quickSearchForm">
+            <!-- Origin / Swap / Destination -->
+            <div class="station-row">
+                <div class="form-group">
+                    <label for="sourceStation">From (Origin Station) *</label>
+                    <select name="source" id="sourceStation" class="form-control" required>
+                        <option value="NDLS" selected>NDLS - New Delhi</option>
+                        <option value="BCT">BCT - Mumbai Central</option>
+                        <option value="HWH">HWH - Howrah Junction</option>
+                        <option value="MAS">MAS - Chennai Central</option>
+                        <option value="SBC">SBC - KSR Bengaluru</option>
+                    </select>
+                </div>
+
+                <div class="swap-btn-wrapper">
+                    <button type="button" id="swapStationsBtn" class="btn-swap" title="Swap Origin & Destination">
+                        &#8644;
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label for="destStation">To (Destination Station) *</label>
+                    <select name="dest" id="destStation" class="form-control" required>
+                        <option value="BCT" selected>BCT - Mumbai Central</option>
+                        <option value="NDLS">NDLS - New Delhi</option>
+                        <option value="HWH">HWH - Howrah Junction</option>
+                        <option value="MAS">MAS - Chennai Central</option>
+                        <option value="SBC">SBC - KSR Bengaluru</option>
+                    </select>
+                </div>
             </div>
 
-            <div style="display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1.1rem;">
-                <button type="button" id="swapStationsBtn" class="btn btn-secondary" title="Swap Stations" style="padding: 0.6rem 0.9rem;">
-                    &#8644;
+            <!-- Date, Class, Quota -->
+            <div class="search-parameters-row">
+                <div class="form-group">
+                    <label for="travelDate">Journey Date *</label>
+                    <input type="date" name="date" id="travelDate" class="form-control" required value="{{ default_date }}">
+                    <div class="date-chips">
+                        <button type="button" class="date-chip" data-days-offset="0">Today</button>
+                        <button type="button" class="date-chip" data-days-offset="1">Tomorrow</button>
+                        <button type="button" class="date-chip active" data-days-offset="2">+2 Days</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="classSelect">Class</label>
+                    <select name="class_pref" id="classSelect" class="form-control">
+                        <option value="ALL">All Classes</option>
+                        {% for code, info in class_options.items() %}
+                        <option value="{{ code }}">{{ info.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quotaSelect">Quota</label>
+                    <select name="quota" id="quotaSelect" class="form-control">
+                        {% for code, q in quota_options.items() %}
+                        <option value="{{ code }}">{{ q.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Railway Concession & Convenience Options -->
+            <div class="railway-options-row">
+                <label class="railway-option-item">
+                    <input type="checkbox" name="opt_pwd"> Person With Disability Concession
+                </label>
+                <label class="railway-option-item">
+                    <input type="checkbox" name="opt_flex" checked> Flexible With Date
+                </label>
+                <label class="railway-option-item">
+                    <input type="checkbox" name="opt_berth"> Train with Available Berth
+                </label>
+                <label class="railway-option-item">
+                    <input type="checkbox" name="opt_pass"> Railway Pass Concession
+                </label>
+            </div>
+
+            <!-- Action Row -->
+            <div class="search-action-row">
+                <div style="font-size: 0.82rem; color: var(--text-muted);">
+                    &#9888; Simulated booking environment. Tatkal and General quota available.
+                </div>
+                <button type="submit" class="btn btn-railway" style="padding: 0.75rem 2.5rem; font-size: 1rem;">
+                    &#128269; Search Trains
                 </button>
             </div>
-
-            <div class="form-group">
-                <label for="destStation">Destination Station (To) *</label>
-                <select name="dest" id="destStation" class="form-control" required>
-                    <option value="BCT">BCT - Mumbai Central</option>
-                    <option value="NDLS">NDLS - New Delhi</option>
-                    <option value="HWH">HWH - Howrah Junction</option>
-                    <option value="MAS">MAS - Chennai Central</option>
-                    <option value="SBC">SBC - KSR Bengaluru</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="travelDate">Journey Date *</label>
-                <input type="date" name="date" id="travelDate" class="form-control" required value="2026-09-20">
-            </div>
-
-            <div class="form-group">
-                <label for="quotaSelect">Quota Type</label>
-                <select name="quota" id="quotaSelect" class="form-control">
-                    <option value="GN">General (GN)</option>
-                    <option value="TQ">Tatkal (TQ)</option>
-                    <option value="PT">Premium Tatkal (PT)</option>
-                    <option value="LD">Ladies (LD)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="classSelect">Preferred Class</label>
-                <select name="class_pref" id="classSelect" class="form-control">
-                    <option value="ALL">All Classes</option>
-                    <option value="1A">AC First Class (1A)</option>
-                    <option value="2A">AC 2 Tier (2A)</option>
-                    <option value="3A">AC 3 Tier (3A)</option>
-                    <option value="SL">Sleeper (SL)</option>
-                </select>
-            </div>
-        </div>
-
-        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
-            <button type="submit" class="btn btn-accent" style="padding: 0.75rem 2rem; font-size: 1rem;">
-                &#128269; Search Trains
-            </button>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 
-<!-- Architecture & Security Pillars Highlight -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 2rem;">
-    <div class="card" style="border-left: 4px solid var(--success-color);">
-        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#128187; Multi-Signal Behavioral ML</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Analyzes keystroke dynamics, cursor kinematics, scroll hesitation, and form dwell patterns to differentiate humans from bots without checking Selenium flags.
+<!-- Railway Features & Cybersecurity Highlights -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.5rem;">
+    <div class="card" style="border-top: 3px solid var(--railway-blue);">
+        <h3 style="font-size: 1.05rem; color: var(--railway-navy); margin-bottom: 0.4rem;">&#128642; High-Demand Railway Simulation</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Emulates realistic Tatkal and General reservation spikes, seat quota allocation, class-specific pricing, and instantaneous booking contention.
         </p>
     </div>
 
-    <div class="card" style="border-left: 4px solid var(--accent-color);">
-        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#9878; Low False-Positive Defense</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Adaptive graduated responses (Allow &rarr; Challenge &rarr; Rate-Limit) ensure genuine travelers are never permanently locked out by single anomalies.
+    <div class="card" style="border-top: 3px solid var(--success-green);">
+        <h3 style="font-size: 1.05rem; color: var(--railway-navy); margin-bottom: 0.4rem;">&#128737; Behavioral Bot Detection</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Continuous passive telemetry analyzes mouse kinematics, keystroke cadence, and dwell intervals to separate automated scripts from genuine travelers.
         </p>
     </div>
 
-    <div class="card" style="border-left: 4px solid var(--warning-color);">
-        <h3 style="font-size: 1.05rem; color: var(--primary-color); margin-bottom: 0.4rem;">&#128274; Privacy-Preserving Telemetry</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Zero capture of plain text passwords or payment details. Strict event delta logging and cryptographically bound session tracking.
+    <div class="card" style="border-top: 3px solid #f59e0b;">
+        <h3 style="font-size: 1.05rem; color: var(--railway-navy); margin-bottom: 0.4rem;">&#9878; Adaptive Graduated Security</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+            Risk-scored transactions dynamically face verification challenges instead of aggressive IP blocks, preserving low false-positive rates for travelers.
         </p>
     </div>
 </div>

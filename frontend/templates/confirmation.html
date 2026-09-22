@@ -4,136 +4,146 @@
 {% block title %}RailSim Express - Ticket Confirmed{% endblock %}
 
 {% block content %}
-<div class="booking-stepper">
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
+<!-- Railway 5-Step Stepper -->
+<div class="railway-stepper">
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
         <span>Search</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
-        <span>Select & Class</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
+        <span>Select Train</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
-        <span>Passengers</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
+        <span>Passenger Details</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
         <span>Payment</span>
     </div>
-    <div class="step-divider"></div>
-    <div class="step-item completed">
-        <div class="step-number">&#10003;</div>
-        <span style="font-weight: 700; color: var(--success-color);">Confirmed</span>
+    <div class="stepper-divider"></div>
+    <div class="stepper-step completed">
+        <div class="stepper-num">&#10003;</div>
+        <span style="font-weight: 700; color: var(--success-green);">Confirmed</span>
     </div>
 </div>
 
 <div class="container-narrow">
-    <!-- Success Alert -->
-    <div class="alert alert-success" style="margin-bottom: 1.5rem; justify-content: space-between;">
+    <!-- Success Banner -->
+    <div class="alert alert-success" style="justify-content: space-between; margin-bottom: 1.25rem;">
         <div>
-            <strong>&#10004; TICKET BOOKED SUCCESSFULLY!</strong> Electronic reservation slip generated.
+            <strong>&#10004; TICKET BOOKED SUCCESSFULLY!</strong> Electronic Reservation Slip (ERS) Generated.
         </div>
-        <span class="badge badge-success">CNF / CONFIRMED</span>
+        <span class="badge badge-success">CONFIRMED</span>
     </div>
 
-    <!-- Ticket Printable Card -->
-    <div class="ticket-container" id="printableTicket">
-        <!-- PNR Banner -->
-        <div class="ticket-pnr-banner">
+    <!-- Electronic Reservation Slip (ERS) Card -->
+    <div class="ers-ticket" id="printableTicket">
+        <!-- PNR Header -->
+        <div class="ers-header">
             <div>
-                <div class="ticket-pnr-title">PASSENGER NAME RECORD (PNR)</div>
-                <div class="ticket-pnr-code">{{ pnr }}</div>
+                <div class="ers-pnr-title">PASSENGER NAME RECORD (PNR)</div>
+                <div class="ers-pnr-code">{{ pnr }}</div>
             </div>
             <div style="text-align: right;">
-                <span class="badge badge-success" style="font-size: 0.85rem; background: #ffffff; color: #065f46;">CONFIRMED</span>
+                <span class="badge badge-success" style="background: #ffffff; color: #065f46; font-size: 0.85rem;">CONFIRMED</span>
                 <div style="font-size: 0.75rem; color: #bae6fd; margin-top: 0.25rem;">Quota: {{ booking.quota }}</div>
             </div>
         </div>
 
         <!-- Train Details -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--railway-border); padding-bottom: 0.85rem; margin-bottom: 1rem;">
             <div>
-                <h3 style="color: var(--primary-color); font-size: 1.2rem;">{{ booking.train_name }} (#{{ booking.train_number }})</h3>
-                <span style="font-size: 0.85rem; color: var(--text-muted);">Class: <strong>{{ booking.travel_class }}</strong> &bull; Scheduled Date: <strong>{{ booking.travel_date }}</strong></span>
+                <h3 style="color: var(--railway-navy); font-size: 1.15rem;">{{ booking.train_name }} (#{{ booking.train_number }})</h3>
+                <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Class: <strong>{{ booking.travel_class }}</strong> &bull; Journey Date: <strong>{{ booking.travel_date }}</strong>
+                </span>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Total Paid:</div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: #047857;">&#8377;{{ booking.total_fare }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Total Fare Paid:</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: var(--success-green);">&#8377;{{ booking.total_fare }}</div>
             </div>
         </div>
 
-        <!-- Route times -->
-        <div class="train-schedule-grid" style="margin-bottom: 1.25rem;">
-            <div>
-                <div class="station-time">{{ booking.departure_time }}</div>
-                <div class="station-name">{{ booking.source_station }}</div>
+        <!-- Schedule Bar -->
+        <div class="train-schedule-bar" style="border: 1px solid var(--railway-border); border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+            <div class="schedule-station">
+                <span class="schedule-time">{{ booking.departure_time }}</span>
+                <span class="schedule-name">{{ booking.source_station }}</span>
             </div>
-            <div class="travel-duration">
+
+            <div class="schedule-duration">
                 <div>Direct Scheduled Run</div>
-                <div class="duration-line"></div>
-                <div>Confirmed Berth Allocated</div>
+                <div class="duration-track"></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Confirmed Berth Allocated</div>
             </div>
-            <div style="text-align: right;">
-                <div class="station-time">{{ booking.arrival_time }}</div>
-                <div class="station-name">{{ booking.dest_station }}</div>
+
+            <div class="schedule-station dest">
+                <span class="schedule-time">{{ booking.arrival_time }}</span>
+                <span class="schedule-name">{{ booking.dest_station }}</span>
             </div>
         </div>
 
         <!-- Passenger Allocations -->
-        <h4 style="font-size: 0.95rem; color: var(--primary-color); margin-bottom: 0.6rem;">Allocated Berths & Passengers:</h4>
-        <div style="overflow-x: auto; margin-bottom: 1.25rem;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+        <h4 style="font-size: 0.95rem; color: var(--railway-navy); margin-bottom: 0.5rem;">Passenger Berths & Coach Allocation:</h4>
+        <div class="table-responsive" style="margin-bottom: 1.25rem;">
+            <table class="railway-table">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border-color); background: #f8fafc;">
-                        <th style="padding: 0.5rem;">#</th>
-                        <th style="padding: 0.5rem;">Name</th>
-                        <th style="padding: 0.5rem;">Age/Gender</th>
-                        <th style="padding: 0.5rem;">Coach / Berth</th>
-                        <th style="padding: 0.5rem; text-align: right;">Status</th>
+                    <tr>
+                        <th>#</th>
+                        <th>Passenger Name</th>
+                        <th>Age / Gender</th>
+                        <th>Coach / Berth</th>
+                        <th style="text-align: right;">Current Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for p in booking.passengers %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 0.5rem;">{{ loop.index }}</td>
-                        <td style="padding: 0.5rem; font-weight: 600;">{{ p.name }}</td>
-                        <td style="padding: 0.5rem;">{{ p.age }} / {{ p.gender }}</td>
-                        <td style="padding: 0.5rem; font-weight: 700; color: var(--primary-color);">{{ p.seat_allocated }}</td>
-                        <td style="padding: 0.5rem; text-align: right;"><span class="badge badge-success">CNF</span></td>
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-weight: 600;">{{ p.name }}</td>
+                        <td>{{ p.age }} / {{ p.gender }}</td>
+                        <td style="font-weight: 700; color: var(--railway-navy);">{{ p.seat_allocated }}</td>
+                        <td style="text-align: right;"><span class="badge badge-success">CNF</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Adaptive Security Telemetry Verification Box -->
-        <div class="card" style="background: #f8fafc; border-color: #cbd5e1; margin-bottom: 0;">
+        <!-- AI Behavioral Security Status -->
+        <div style="background: #f9fafb; border: 1px solid var(--railway-border); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <strong style="font-size: 0.85rem; color: var(--primary-color);">&#128737; AI Behavioral Security Verification:</strong>
-                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
-                        Session: <code>{{ session.get('session_token', 'TEST_SESSION') }}</code> &bull; Human Interaction Assessed
+                    <strong style="font-size: 0.85rem; color: var(--railway-navy);">&#128737; AI Behavioral Telemetry Assessment:</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+                        Session: <code>{{ session.get('session_token', 'SESSION_CONFIRMED') }}</code> &bull; Verified Human Pattern
                     </div>
                 </div>
-                <div style="text-align: right;">
-                    <span class="badge badge-success" style="font-size: 0.8rem;">Low Bot Risk: 14/100</span>
-                </div>
+                <span class="badge badge-success">Low Bot Risk</span>
             </div>
         </div>
     </div>
 
     <!-- Actions -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
         <button type="button" class="btn btn-secondary" onclick="window.print();">
             &#128424; Print Electronic Ticket
         </button>
-        <a href="{{ url_for('search') }}" class="btn btn-primary">
-            &#128642; Book Another Journey
-        </a>
+        <div style="display: flex; gap: 0.5rem;">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('my_bookings') }}" class="btn btn-secondary">
+                &#128203; View My Bookings
+            </a>
+            {% endif %}
+            <a href="{{ url_for('search') }}" class="btn btn-primary">
+                &#128642; Book Another Journey
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
