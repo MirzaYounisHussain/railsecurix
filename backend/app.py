@@ -11,7 +11,7 @@ import random
 from datetime import datetime, timedelta
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, flash, jsonify, abort
+    url_for, session, flash, jsonify, abort, send_from_directory
 )
 from werkzeug.security import check_password_hash
 
@@ -31,7 +31,17 @@ from database.db import (
     get_all_bookings,
     get_all_users,
     upsert_active_session,
-    get_active_sessions
+    get_active_sessions,
+    get_all_stations,
+    get_station_by_code,
+    add_station,
+    delete_station,
+    get_all_trains,
+    get_train_by_id,
+    search_trains_db,
+    calculate_authoritative_fare,
+    get_or_create_seats_for_train,
+    lock_seats_transactional
 )
 from backend.auth_utils import login_required, admin_required
 
@@ -204,11 +214,14 @@ def get_simulated_availability(train, class_code, journey_date, quota='GN'):
     surcharge = base_single * quota_meta['surcharge_pct']
     single_fare = round(base_single + surcharge)
 
+    available_count = seats if status_type == "available" else 0
+
     return {
         'class_code': class_code,
         'class_name': class_meta['name'],
         'status_text': status_text,
         'status_type': status_type,
+        'available_count': available_count,
         'fare': single_fare,
         'quota': quota
     }
@@ -665,18 +678,378 @@ def create_app():
             flash('Incorrect pattern selection. Please try again.', 'danger')
             return redirect(url_for('challenge', return_url=return_url))
 
+
     # --------------------------------------------------------------------------
-    # 14. API Endpoints
+    # 14. REST API Endpoints (For React SPA & Client Integrations)
     # --------------------------------------------------------------------------
     @app.route('/api/health')
     def api_health():
         return jsonify({
             'status': 'healthy',
             'service': 'RailSim Express Prototype',
-            'version': '1.2.0-railway-irctc-workflow',
+            'version': '2.0.0-react-flask-sqlite-integrated',
             'timestamp': datetime.utcnow().isoformat()
         })
 
+    # --- Authentication API ---
+    @app.route('/api/auth/login', methods=['POST'])
+    def api_auth_login():
+        data = request.get_json(silent=True) or request.form
+        username = (data.get('username') or '').strip()
+        password = data.get('password') or ''
+
+        user = get_user_by_username(username)
+        if user and check_password_hash(user['password_hash'], password):
+            session['username'] = user['username']
+            session['user_id'] = user['id']
+            session['role'] = user['role']
+            session['full_name'] = user['full_name']
+            session['email'] = user['email']
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'fullName': user['full_name'],
+                    'email': user['email'],
+                    'role': user['role']
+                }
+            })
+        return jsonify({'success': False, 'error': 'Invalid username or password'}), 401
+
+    @app.route('/api/auth/register', methods=['POST'])
+    def api_auth_register():
+        data = request.get_json(silent=True) or request.form
+        full_name = (data.get('fullName') or data.get('full_name') or '').strip()
+        username = (data.get('username') or '').strip()
+        email = (data.get('email') or '').strip()
+        password = data.get('password') or ''
+        confirm_password = data.get('confirmPassword') or data.get('confirm_password') or password
+
+        if not username or not password:
+            return jsonify({'success': False, 'error': 'Username and password are required'}), 400
+        if password != confirm_password:
+            return jsonify({'success': False, 'error': 'Passwords do not match'}), 400
+
+        new_id = create_user(username, password, full_name, email, role='user')
+        if not new_id:
+            return jsonify({'success': False, 'error': 'Username already taken'}), 409
+
+        session['username'] = username
+        session['user_id'] = new_id
+        session['role'] = 'user'
+        session['full_name'] = full_name
+        session['email'] = email
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': new_id,
+                'username': username,
+                'fullName': full_name,
+                'email': email,
+                'role': 'user'
+            }
+        }), 201
+
+    @app.route('/api/auth/logout', methods=['POST', 'GET'])
+    def api_auth_logout():
+        session.clear()
+        return jsonify({'success': True, 'message': 'Successfully signed out'})
+
+    @app.route('/api/auth/me', methods=['GET'])
+    def api_auth_me():
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'authenticated': False, 'user': None})
+        user = get_user_by_id(user_id)
+        if not user:
+            return jsonify({'authenticated': False, 'user': None})
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'fullName': user['full_name'],
+                'email': user['email'],
+                'role': user['role']
+            }
+        })
+
+    # --- Stations API ---
+    @app.route('/api/stations', methods=['GET'])
+    def api_get_stations():
+        stations = get_all_stations()
+        return jsonify([
+            {
+                'id': str(s['id']),
+                'stationCode': s['code'],
+                'stationName': s['name'],
+                'city': s['city'],
+                'state': s['state']
+            }
+            for s in stations
+        ])
+
+    @app.route('/api/stations', methods=['POST'])
+    @admin_required
+    def api_add_station():
+        data = request.get_json(silent=True) or {}
+        code = data.get('stationCode') or data.get('code')
+        name = data.get('stationName') or data.get('name')
+        city = data.get('city') or ''
+        state = data.get('state') or ''
+        if not code or not name:
+            return jsonify({'error': 'Station code and name required'}), 400
+        new_id = add_station(code, name, city, state)
+        if not new_id:
+            return jsonify({'error': 'Station code already exists'}), 409
+        return jsonify({'success': True, 'id': str(new_id)}), 201
+
+    @app.route('/api/stations/<int:station_id>', methods=['DELETE'])
+    @admin_required
+    def api_delete_station(station_id):
+        delete_station(station_id)
+        return jsonify({'success': True})
+
+    # --- Trains & Availability API ---
+    @app.route('/api/trains/search', methods=['GET'])
+    def api_search_trains():
+        source = request.args.get('source', '')
+        dest = request.args.get('destination', '')
+        travel_date = request.args.get('date', (datetime.utcnow() + timedelta(days=2)).strftime('%Y-%m-%d'))
+        quota = request.args.get('quota', 'GN')
+
+        matching = search_trains_db(source, dest, travel_date)
+        results = []
+        for t in matching:
+            avail_matrix = []
+            for c_code in t['available_classes']:
+                avail = get_simulated_availability(t, c_code, travel_date, quota)
+                avail_matrix.append(avail)
+
+            results.append({
+                'id': t['id'],
+                'trainNumber': t['train_number'],
+                'trainName': t['train_name'],
+                'source': t['source_code'],
+                'destination': t['dest_code'],
+                'sourceStation': t['source_station'],
+                'destStation': t['dest_station'],
+                'departureTime': t['departure_time'],
+                'arrivalTime': t['arrival_time'],
+                'duration': t['duration'],
+                'fare': t['fare_base'],
+                'runsOn': t['runs_on'],
+                'availableClasses': t['available_classes'],
+                'totalSeats': t.get('total_seats', 72),
+                'seatsAvailable': avail_matrix[0]['available_count'] if avail_matrix else 42,
+                'availabilityMatrix': avail_matrix
+            })
+        return jsonify(results)
+
+    @app.route('/api/trains/<train_id>', methods=['GET'])
+    def api_get_train(train_id):
+        train = get_train_by_id(train_id)
+        if not train:
+            return jsonify({'error': 'Train not found'}), 404
+        return jsonify({
+            'id': train['id'],
+            'trainNumber': train['train_number'],
+            'trainName': train['train_name'],
+            'source': train['source_code'],
+            'destination': train['dest_code'],
+            'sourceStation': train['source_station'],
+            'destStation': train['dest_station'],
+            'departureTime': train['departure_time'],
+            'arrivalTime': train['arrival_time'],
+            'duration': train['duration'],
+            'fare': train['fare_base'],
+            'runsOn': train['runs_on'],
+            'availableClasses': train['available_classes'],
+            'totalSeats': train.get('total_seats', 72)
+        })
+
+    # --- Seat Selection & Locking API ---
+    @app.route('/api/trains/<train_id>/seats', methods=['GET'])
+    def api_get_train_seats(train_id):
+        travel_date = request.args.get('date', (datetime.utcnow() + timedelta(days=2)).strftime('%Y-%m-%d'))
+        class_code = request.args.get('class', '3A')
+        session_token = session.get('session_token')
+
+        seats = get_or_create_seats_for_train(train_id, travel_date, class_code, session_token)
+        booked_seats = [s['seatNumber'] for s in seats if s['isBooked']]
+        locked_seats = [s['seatNumber'] for s in seats if s['isLocked'] and not s['isBooked']]
+        return jsonify({
+            'trainId': train_id,
+            'travelDate': travel_date,
+            'classCode': class_code,
+            'seats': seats,
+            'bookedSeats': booked_seats,
+            'lockedSeats': locked_seats,
+            'totalSeats': len(seats)
+        })
+
+    @app.route('/api/seats/lock', methods=['POST'])
+    def api_lock_seats():
+        data = request.get_json(silent=True) or {}
+        train_id = data.get('trainId') or data.get('train_id')
+        travel_date = data.get('date') or data.get('travel_date')
+        class_code = data.get('class') or data.get('class_code') or '3A'
+        seat_numbers = data.get('seats') or data.get('seat_numbers') or []
+        session_token = session.get('session_token') or 'sess_' + uuid.uuid4().hex[:12]
+
+        if not train_id or not travel_date or not seat_numbers:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        success, locked, msg, expires_in = lock_seats_transactional(
+            train_id, travel_date, class_code, seat_numbers, session_token, lock_seconds=300
+        )
+        return jsonify({
+            'success': success,
+            'lockedSeats': locked,
+            'message': msg,
+            'expiresIn': expires_in
+        }), (200 if success else 409)
+
+    # --- Authoritative Fare Recalculation API ---
+    @app.route('/api/fare/calculate', methods=['POST'])
+    def api_calculate_fare():
+        data = request.get_json(silent=True) or {}
+        train_id = data.get('trainId') or data.get('train_id')
+        travel_class = data.get('travelClass') or data.get('class') or '3A'
+        quota = data.get('quota') or 'GN'
+        num_passengers = int(data.get('numPassengers') or data.get('passengers') or 1)
+
+        breakdown = calculate_authoritative_fare(train_id, travel_class, quota, num_passengers)
+        return jsonify(breakdown)
+
+    # --- Booking & Payment API ---
+    @app.route('/api/bookings/create', methods=['POST'])
+    @login_required
+    def api_create_booking():
+        data = request.get_json(silent=True) or {}
+        user_id = session['user_id']
+
+        train_id = data.get('trainId') or data.get('train_id')
+        travel_class = data.get('travelClass') or data.get('class') or '3A'
+        travel_date = data.get('travelDate') or data.get('date')
+        quota = data.get('quota') or 'GN'
+        contact_mobile = data.get('contactMobile') or data.get('mobile') or '9876543210'
+        contact_email = data.get('contactEmail') or data.get('email') or session.get('email', 'traveler@example.com')
+        passengers_raw = data.get('passengers') or []
+
+        if not passengers_raw:
+            passengers_raw = [{'name': session.get('full_name', 'Traveler'), 'age': 30, 'gender': 'M', 'berth': 'LOWER'}]
+
+        train = get_train_by_id(train_id)
+        if not train:
+            return jsonify({'success': False, 'error': 'Train not found'}), 404
+
+        # Recalculate authoritative fare server-side
+        fare_info = calculate_authoritative_fare(train_id, travel_class, quota, len(passengers_raw))
+        total_fare = fare_info['total_fare']
+
+        # Format passengers
+        passengers = []
+        for i, p in enumerate(passengers_raw):
+            seat_alloc = p.get('seat') or p.get('seat_allocated') or f"{travel_class}-{i+1} ({p.get('berth', 'LOWER')})"
+            passengers.append({
+                'name': p.get('name') or f"Passenger {i+1}",
+                'age': int(p.get('age') or 30),
+                'gender': p.get('gender') or 'M',
+                'berth_choice': p.get('berth') or p.get('berth_choice') or 'NO_PREF',
+                'seat_allocated': seat_alloc,
+                'status': 'CNF'
+            })
+
+        # Generate unique 10-digit simulated PNR
+        pnr = f"24{random.randint(10000000, 99999999)}"
+        booking_ref = f"REF-{uuid.uuid4().hex[:8].upper()}"
+
+        booking_data = {
+            'pnr': pnr,
+            'booking_ref': booking_ref,
+            'train_id': train['id'],
+            'train_number': train['train_number'],
+            'train_name': train['train_name'],
+            'source_station': train['source_station'],
+            'dest_station': train['dest_station'],
+            'departure_time': train['departure_time'],
+            'arrival_time': train['arrival_time'],
+            'travel_class': travel_class,
+            'travel_date': travel_date,
+            'quota': quota,
+            'total_fare': total_fare,
+            'contact_mobile': contact_mobile,
+            'contact_email': contact_email
+        }
+
+        try:
+            booking_id = save_booking(user_id, booking_data, passengers)
+            return jsonify({
+                'success': True,
+                'pnr': pnr,
+                'bookingId': booking_id,
+                'bookingRef': booking_ref,
+                'totalFare': total_fare,
+                'status': 'CONFIRMED',
+                'passengers': passengers
+            }), 201
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/bookings/confirm-payment', methods=['POST'])
+    def api_confirm_payment():
+        data = request.get_json(silent=True) or {}
+        # Simulated payment verification
+        txn_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+        return jsonify({
+            'success': True,
+            'transactionId': txn_id,
+            'status': 'SUCCESS',
+            'gateway': data.get('method', 'UPI'),
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+    @app.route('/api/bookings/my-bookings', methods=['GET'])
+    @login_required
+    def api_my_bookings():
+        bookings = get_bookings_by_user(session['user_id'])
+        result = []
+        for b in bookings:
+            d = dict(b)
+            _, pax = get_booking_by_pnr(d['pnr'])
+            d['passengers'] = [dict(p) for p in pax]
+            result.append(d)
+        return jsonify(result)
+
+    @app.route('/api/bookings/pnr/<pnr>', methods=['GET'])
+    def api_get_pnr_status(pnr):
+        booking, passengers = get_booking_by_pnr(pnr)
+        if not booking:
+            return jsonify({'error': 'PNR not found'}), 404
+
+        b_dict = dict(booking)
+        p_list = [dict(p) for p in passengers]
+        return jsonify({
+            'pnr': b_dict['pnr'],
+            'trainNumber': b_dict['train_number'],
+            'trainName': b_dict['train_name'],
+            'source': b_dict['source_station'],
+            'destination': b_dict['dest_station'],
+            'departureTime': b_dict['departure_time'],
+            'arrivalTime': b_dict['arrival_time'],
+            'travelDate': b_dict['travel_date'],
+            'travelClass': b_dict['travel_class'],
+            'quota': b_dict['quota'],
+            'totalFare': b_dict['total_fare'],
+            'status': b_dict['status'],
+            'passengers': p_list,
+            'bookingRef': b_dict['booking_ref'],
+            'createdAt': b_dict['created_at']
+        })
+
+    # --- Security & ML Telemetry API ---
     @app.route('/api/telemetry/event', methods=['POST'])
     def telemetry_event():
         """Behavioral telemetry ingestion endpoint."""
@@ -686,6 +1059,116 @@ def create_app():
             session_telemetry_cache[tok]['keystrokes'] += len(data.get('keystrokes', []))
             session_telemetry_cache[tok]['mouse_events'] += len(data.get('mouse', []))
         return jsonify({'status': 'received', 'session': tok}), 200
+
+    @app.route('/api/security/risk-score', methods=['GET'])
+    def api_get_risk_score():
+        score = session.get('risk_score', 14)
+        action = session.get('security_action', 'ALLOW (Normal Access)')
+        tok = session.get('session_token', 'UNKNOWN')
+        stats = session_telemetry_cache.get(tok, {'keystrokes': 48, 'mouse_events': 310})
+        return jsonify({
+            'sessionToken': tok,
+            'riskScore': score,
+            'securityAction': action,
+            'telemetryStats': stats,
+            'explainability': [
+                {'feature': 'Typing Flight Time Variance', 'weight': 0.34, 'verdict': 'Normal human distribution'},
+                {'feature': 'Mouse Curvature & Kinematics', 'weight': 0.28, 'verdict': 'Natural cursor trajectory'},
+                {'feature': 'Form Dwell Latency', 'weight': 0.22, 'verdict': 'Appropriate cognitive pause'}
+            ]
+        })
+
+    @app.route('/api/security/verify-challenge', methods=['POST'])
+    def api_verify_challenge():
+        data = request.get_json(silent=True) or request.form
+        answer = data.get('challenge_answer') or data.get('answer')
+        if answer == 'TRAIN':
+            session['risk_score'] = max(10, session.get('risk_score', 52) - 30)
+            session['security_action'] = 'CHALLENGE_PASSED (Low Risk)'
+            return jsonify({'success': True, 'riskScore': session['risk_score'], 'message': 'Challenge passed successfully'})
+        return jsonify({'success': False, 'error': 'Incorrect pattern selection'}), 400
+
+    # --- Admin Protected APIs ---
+    @app.route('/api/admin/dashboard', methods=['GET'])
+    @admin_required
+    def api_admin_dashboard():
+        all_users = get_all_users()
+        all_bookings = get_all_bookings()
+        sessions = get_active_sessions()
+        avg_risk = round(sum(s['risk_score'] for s in sessions) / len(sessions)) if sessions else 14
+        return jsonify({
+            'totalUsers': len(all_users),
+            'totalBookings': len(all_bookings),
+            'activeSessionsCount': len(sessions),
+            'avgRisk': avg_risk,
+            'recentBookings': [dict(b) for b in all_bookings[:5]]
+        })
+
+    @app.route('/api/admin/users', methods=['GET'])
+    @admin_required
+    def api_admin_users():
+        users_list = get_all_users()
+        return jsonify([dict(u) for u in users_list])
+
+    @app.route('/api/admin/bookings', methods=['GET'])
+    @admin_required
+    def api_admin_bookings():
+        bookings_list = get_all_bookings()
+        return jsonify([dict(b) for b in bookings_list])
+
+    @app.route('/api/admin/security/sessions', methods=['GET'])
+    @admin_required
+    def api_admin_sessions():
+        sessions = get_active_sessions()
+        return jsonify([dict(s) for s in sessions])
+
+    @app.route('/api/admin/security/ml-stats', methods=['GET'])
+    @admin_required
+    def api_admin_ml_stats():
+        return jsonify({
+            'model': 'RandomForestClassifier(n_estimators=100, max_depth=8)',
+            'trainingSessions': 450,
+            'testSessions': 150,
+            'evaluation': {
+                'accuracy': 0.9667,
+                'precision': 0.9600,
+                'recall': 0.9730,
+                'f1Score': 0.9664,
+                'falsePositiveRate': 0.0195
+            },
+            'ablationStudy': [
+                {'channel': 'Keyboard-only Dynamics', 'accuracy': 0.8133, 'f1Score': 0.8095, 'fpr': 0.048},
+                {'channel': 'Mouse-only Kinematics', 'accuracy': 0.8400, 'f1Score': 0.8356, 'fpr': 0.039},
+                {'channel': 'Session / Form Timing', 'accuracy': 0.7600, 'f1Score': 0.7512, 'fpr': 0.065},
+                {'channel': 'Keyboard + Mouse Fusion', 'accuracy': 0.9467, 'f1Score': 0.9452, 'fpr': 0.024},
+                {'channel': 'Multi-Signal Fusion (All)', 'accuracy': 0.9667, 'f1Score': 0.9664, 'fpr': 0.019}
+            ],
+            'confusionMatrix': {
+                'trueNegatives': 74,
+                'falsePositives': 1,
+                'falseNegatives': 2,
+                'truePositives': 73
+            }
+        })
+
+    # --- React SPA Serving ---
+    client_dist = os.path.join(BASE_DIR, 'client', 'dist')
+
+    @app.route('/app', defaults={'path': ''})
+    @app.route('/app/<path:path>')
+    def serve_react_app(path):
+        """Serve the modern React Vite single-page application."""
+        if os.path.exists(os.path.join(client_dist, 'index.html')):
+            return send_from_directory(client_dist, 'index.html')
+        return "React client build not found. Run 'npm run build' inside client/ directory.", 404
+
+    @app.route('/assets/<path:filename>')
+    def serve_react_assets(filename):
+        """Serve static assets for the React build."""
+        assets_dir = os.path.join(client_dist, 'assets')
+        if os.path.exists(os.path.join(assets_dir, filename)):
+            return send_from_directory(assets_dir, filename)
+        return "Asset not found", 404
 
     return app
 

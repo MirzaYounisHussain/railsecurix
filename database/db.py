@@ -4,6 +4,8 @@ Handles SQLite connection pooling, table initialization, user authentication,
 booking persistence, and administrative query models.
 """
 
+import json
+from datetime import datetime, timedelta
 import os
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,6 +13,149 @@ from werkzeug.security import generate_password_hash, check_password_hash
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DEFAULT_DB_PATH = os.path.join(BASE_DIR, 'database', 'railsim.db')
 SCHEMA_PATH = os.path.join(BASE_DIR, 'database', 'schema.sql')
+
+DEFAULT_STATIONS = [
+    {"code": "NDLS", "name": "New Delhi", "city": "New Delhi", "state": "Delhi"},
+    {"code": "BCT", "name": "Mumbai Central", "city": "Mumbai", "state": "Maharashtra"},
+    {"code": "HWH", "name": "Howrah Junction", "city": "Kolkata", "state": "West Bengal"},
+    {"code": "MAS", "name": "Chennai Central", "city": "Chennai", "state": "Tamil Nadu"},
+    {"code": "SBC", "name": "KSR Bengaluru", "city": "Bengaluru", "state": "Karnataka"},
+    {"code": "PNBE", "name": "Patna Junction", "city": "Patna", "state": "Bihar"},
+    {"code": "ADI", "name": "Ahmedabad Junction", "city": "Ahmedabad", "state": "Gujarat"},
+    {"code": "PUNE", "name": "Pune Junction", "city": "Pune", "state": "Maharashtra"},
+    {"code": "HYB", "name": "Hyderabad Deccan", "city": "Hyderabad", "state": "Telangana"},
+]
+
+DEFAULT_TRAINS = [
+    {
+        "id": "T12951",
+        "train_number": "12951",
+        "train_name": "Tejas Rajdhani Express",
+        "source_code": "NDLS",
+        "dest_code": "BCT",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "BCT - Mumbai Central",
+        "departure_time": "16:55",
+        "arrival_time": "08:35",
+        "duration": "15h 40m",
+        "fare_base": 780.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["1A", "2A", "3A", "3E"]',
+        "total_seats": 72
+    },
+    {
+        "id": "T12953",
+        "train_number": "12953",
+        "train_name": "August Kranti Tejas",
+        "source_code": "NDLS",
+        "dest_code": "BCT",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "BCT - Mumbai Central",
+        "departure_time": "17:15",
+        "arrival_time": "10:05",
+        "duration": "16h 50m",
+        "fare_base": 740.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["1A", "2A", "3A"]',
+        "total_seats": 64
+    },
+    {
+        "id": "T22436",
+        "train_number": "22436",
+        "train_name": "Vande Bharat Express",
+        "source_code": "NDLS",
+        "dest_code": "BCT",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "BCT - Mumbai Central",
+        "departure_time": "06:00",
+        "arrival_time": "14:15",
+        "duration": "08h 15m",
+        "fare_base": 920.0,
+        "runs_on": '["M", "T", "W", "F", "S", "S"]',
+        "available_classes": '["CC", "EC"]',
+        "total_seats": 52
+    },
+    {
+        "id": "T12002",
+        "train_number": "12002",
+        "train_name": "Shatabdi Express",
+        "source_code": "NDLS",
+        "dest_code": "BCT",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "BCT - Mumbai Central",
+        "departure_time": "06:15",
+        "arrival_time": "15:20",
+        "duration": "09h 05m",
+        "fare_base": 680.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["CC", "EC"]',
+        "total_seats": 56
+    },
+    {
+        "id": "T12622",
+        "train_number": "12622",
+        "train_name": "Tamil Nadu Superfast",
+        "source_code": "NDLS",
+        "dest_code": "MAS",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "MAS - Chennai Central",
+        "departure_time": "21:05",
+        "arrival_time": "06:15",
+        "duration": "33h 10m",
+        "fare_base": 650.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["2A", "3A", "SL", "2S"]',
+        "total_seats": 72
+    },
+    {
+        "id": "T12301",
+        "train_number": "12301",
+        "train_name": "Howrah Rajdhani Express",
+        "source_code": "NDLS",
+        "dest_code": "HWH",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "HWH - Howrah Junction",
+        "departure_time": "16:50",
+        "arrival_time": "09:55",
+        "duration": "17h 05m",
+        "fare_base": 820.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["1A", "2A", "3A", "3E"]',
+        "total_seats": 72
+    },
+    {
+        "id": "T22692",
+        "train_number": "22692",
+        "train_name": "Bengaluru Rajdhani",
+        "source_code": "NDLS",
+        "dest_code": "SBC",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "SBC - KSR Bengaluru",
+        "departure_time": "20:45",
+        "arrival_time": "06:40",
+        "duration": "33h 55m",
+        "fare_base": 850.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["1A", "2A", "3A"]',
+        "total_seats": 64
+    },
+    {
+        "id": "T12295",
+        "train_number": "12295",
+        "train_name": "Sanghamitra Superfast",
+        "source_code": "SBC",
+        "dest_code": "PNBE",
+        "source_station": "SBC - KSR Bengaluru",
+        "dest_station": "PNBE - Patna Junction",
+        "departure_time": "09:15",
+        "arrival_time": "09:20",
+        "duration": "48h 05m",
+        "fare_base": 610.0,
+        "runs_on": '["M", "T", "W", "T", "F", "S", "S"]',
+        "available_classes": '["2A", "3A", "SL"]',
+        "total_seats": 72
+    }
+]
 
 def get_db_path():
     """Return database path respecting testing environment overrides."""
@@ -26,12 +171,35 @@ def get_db_connection():
     conn.execute('PRAGMA journal_mode = WAL;')
     return conn
 
+def run_migrations(conn):
+    """Ensure existing databases have all required columns without data loss."""
+    # 1. Ensure bookings table has contact_mobile and contact_email
+    cursor = conn.execute("PRAGMA table_info(bookings);")
+    existing_booking_cols = {row['name'] if isinstance(row, sqlite3.Row) else row[1] for row in cursor.fetchall()}
+    if 'contact_mobile' not in existing_booking_cols:
+        conn.execute("ALTER TABLE bookings ADD COLUMN contact_mobile TEXT DEFAULT '9876543210';")
+    if 'contact_email' not in existing_booking_cols:
+        conn.execute("ALTER TABLE bookings ADD COLUMN contact_email TEXT DEFAULT 'traveler@example.com';")
+
+    # 2. Ensure passengers table has berth_choice and status
+    cursor = conn.execute("PRAGMA table_info(passengers);")
+    existing_pax_cols = {row['name'] if isinstance(row, sqlite3.Row) else row[1] for row in cursor.fetchall()}
+    if 'berth_choice' not in existing_pax_cols:
+        conn.execute("ALTER TABLE passengers ADD COLUMN berth_choice TEXT DEFAULT 'NO_PREF';")
+    if 'status' not in existing_pax_cols:
+        conn.execute("ALTER TABLE passengers ADD COLUMN status TEXT DEFAULT 'CNF';")
+
+    conn.commit()
+
 def init_db():
-    """Initialize schema and seed initial administrative and standard test users."""
+    """Initialize schema and seed initial administrative, standard test users, stations, and trains."""
     conn = get_db_connection()
     with open(SCHEMA_PATH, 'r', encoding='utf-8') as f:
         conn.executescript(f.read())
     conn.commit()
+
+    # Run non-destructive column migrations on existing tables
+    run_migrations(conn)
 
     # Seed Default User
     user = conn.execute('SELECT id FROM users WHERE username = ?', ('testuser',)).fetchone()
@@ -49,6 +217,29 @@ def init_db():
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
             ('admin', generate_password_hash('Admin@RailSim2026!'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
+        )
+
+    # Seed Default Stations
+    for st in DEFAULT_STATIONS:
+        conn.execute(
+            '''INSERT OR IGNORE INTO stations (code, name, city, state)
+               VALUES (?, ?, ?, ?)''',
+            (st['code'], st['name'], st['city'], st['state'])
+        )
+
+    # Seed Default Trains
+    for tr in DEFAULT_TRAINS:
+        conn.execute(
+            '''INSERT OR IGNORE INTO trains (
+                   id, train_number, train_name, source_code, dest_code,
+                   source_station, dest_station, departure_time, arrival_time,
+                   duration, fare_base, runs_on, available_classes, total_seats
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (
+                tr['id'], tr['train_number'], tr['train_name'], tr['source_code'], tr['dest_code'],
+                tr['source_station'], tr['dest_station'], tr['departure_time'], tr['arrival_time'],
+                tr['duration'], tr['fare_base'], tr['runs_on'], tr['available_classes'], tr['total_seats']
+            )
         )
 
     conn.commit()
@@ -143,6 +334,14 @@ def save_booking(user_id, booking_data, passengers):
                     p.get('status', 'CNF')
                 )
             )
+            # Mark seat as booked in seats table if seat_allocated is given
+            seat_code = (p.get('seat_allocated') or '').split(' ')[0]
+            if seat_code:
+                conn.execute(
+                    '''UPDATE seats SET is_booked = 1, booking_id = ?, locked_until = NULL, locked_by_session = NULL
+                       WHERE train_id = ? AND travel_date = ? AND seat_number = ?''',
+                    (booking_id, booking_data['train_id'], booking_data['travel_date'], seat_code)
+                )
 
         conn.commit()
         return booking_id
@@ -253,3 +452,266 @@ def get_active_sessions():
     ).fetchall()
     conn.close()
     return rows
+
+# --------------------------------------------------------------------------
+# Station Model Operations
+# --------------------------------------------------------------------------
+def get_all_stations():
+    """Retrieve all stations ordered by station name."""
+    conn = get_db_connection()
+    rows = conn.execute('SELECT * FROM stations ORDER BY name ASC').fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_station_by_code(code):
+    """Retrieve station by its uppercase code (e.g. NDLS)."""
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM stations WHERE code = ?', (code.upper().strip(),)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def add_station(code, name, city, state):
+    """Add a new station record."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute(
+            'INSERT INTO stations (code, name, city, state) VALUES (?, ?, ?, ?)',
+            (code.upper().strip(), name.strip(), city.strip(), state.strip())
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+    finally:
+        conn.close()
+
+def delete_station(station_id):
+    """Delete a station by primary key id."""
+    conn = get_db_connection()
+    conn.execute('DELETE FROM stations WHERE id = ?', (station_id,))
+    conn.commit()
+    conn.close()
+
+# --------------------------------------------------------------------------
+# Train Model Operations
+# --------------------------------------------------------------------------
+def get_all_trains():
+    """Retrieve all trains with deserialized schedules."""
+    conn = get_db_connection()
+    rows = conn.execute('SELECT * FROM trains ORDER BY train_number ASC').fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d['runs_on'] = json.loads(d['runs_on']) if isinstance(d['runs_on'], str) else d['runs_on']
+        d['available_classes'] = json.loads(d['available_classes']) if isinstance(d['available_classes'], str) else d['available_classes']
+        result.append(d)
+    return result
+
+def get_train_by_id(train_id):
+    """Retrieve single train record by ID or train number."""
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM trains WHERE id = ? OR train_number = ?', (train_id, train_id)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    d = dict(row)
+    d['runs_on'] = json.loads(d['runs_on']) if isinstance(d['runs_on'], str) else d['runs_on']
+    d['available_classes'] = json.loads(d['available_classes']) if isinstance(d['available_classes'], str) else d['available_classes']
+    return d
+
+def search_trains_db(source='', destination='', travel_date=None):
+    """Filter scheduled trains matching origin and destination station codes or names."""
+    all_trains = get_all_trains()
+    s_clean = (source or '').upper().strip()
+    d_clean = (destination or '').upper().strip()
+
+    matching = []
+    for t in all_trains:
+        s_match = not s_clean or (s_clean == t['source_code'] or s_clean in t['source_station'].upper())
+        d_match = not d_clean or (d_clean == t['dest_code'] or d_clean in t['dest_station'].upper())
+        if s_match and d_match:
+            matching.append(t)
+
+    return matching if matching else all_trains[:3]
+
+# --------------------------------------------------------------------------
+# Authoritative Fare Calculation Engine
+# --------------------------------------------------------------------------
+CLASS_MULTIPLIERS = {
+    '1A': 3.2,
+    '2A': 2.1,
+    '3A': 1.5,
+    '3E': 1.35,
+    'CC': 1.25,
+    'EC': 2.3,
+    'SL': 1.0,
+    '2S': 0.45,
+}
+
+QUOTA_SURCHARGES = {
+    'GN': 0.0,
+    'TQ': 0.25,
+    'PT': 0.45,
+    'LD': 0.0,
+}
+
+def calculate_authoritative_fare(train_id, travel_class, quota='GN', num_passengers=1):
+    """
+    Authoritative server-side fare calculation.
+    Frontend fares are never trusted.
+    """
+    train = get_train_by_id(train_id)
+    base = train['fare_base'] if train else 650.0
+    mult = CLASS_MULTIPLIERS.get(travel_class, 1.0)
+    surch = QUOTA_SURCHARGES.get(quota, 0.0)
+    reservation_fee_per_pax = 40.0
+
+    fare_per_passenger = round((base * mult) * (1.0 + surch))
+    itemized = {
+        'base_fare': base,
+        'travel_class': travel_class,
+        'class_multiplier': mult,
+        'quota': quota,
+        'quota_surcharge_pct': surch,
+        'fare_per_passenger': fare_per_passenger,
+        'reservation_fee_per_pax': reservation_fee_per_pax,
+        'num_passengers': num_passengers,
+        'total_fare': int((fare_per_passenger + reservation_fee_per_pax) * max(1, num_passengers))
+    }
+    return itemized
+
+# --------------------------------------------------------------------------
+# Seat Layout & Transactional 5-Minute Locking Engine
+# --------------------------------------------------------------------------
+SEATS_LAYOUT_CONFIG = {
+    'SL': {'rows': 3, 'seats_per_row': 8, 'coach_prefix': 'S1'},
+    '2A': {'rows': 2, 'seats_per_row': 8, 'coach_prefix': 'A1'},
+    '3A': {'rows': 4, 'seats_per_row': 8, 'coach_prefix': 'B1'},
+    '1A': {'rows': 2, 'seats_per_row': 4, 'coach_prefix': 'H1'},
+    'CC': {'rows': 4, 'seats_per_row': 5, 'coach_prefix': 'C1'},
+    'EC': {'rows': 2, 'seats_per_row': 4, 'coach_prefix': 'E1'},
+    '2S': {'rows': 4, 'seats_per_row': 6, 'coach_prefix': 'D1'},
+}
+
+def get_or_create_seats_for_train(train_id, travel_date, class_code, session_token=None):
+    """
+    Retrieves or generates initial seat records for the specified train, travel date, and class.
+    Automatically purges expired seat locks.
+    Returns list of seat dicts with isBooked, isLocked, and isMine status.
+    """
+    conn = get_db_connection()
+    now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Release expired locks
+    conn.execute(
+        '''UPDATE seats SET locked_until = NULL, locked_by_session = NULL
+           WHERE locked_until IS NOT NULL AND locked_until < ?''',
+        (now_str,)
+    )
+    conn.commit()
+
+    existing = conn.execute(
+        '''SELECT * FROM seats WHERE train_id = ? AND travel_date = ? AND class_code = ?
+           ORDER BY id ASC''',
+        (train_id, travel_date, class_code)
+    ).fetchall()
+
+    if not existing:
+        cfg = SEATS_LAYOUT_CONFIG.get(class_code, {'rows': 3, 'seats_per_row': 8, 'coach_prefix': 'S1'})
+        total_seats = cfg['rows'] * cfg['seats_per_row']
+        berth_types = ['LOWER', 'MIDDLE', 'UPPER', 'SIDE_LOWER', 'SIDE_UPPER', 'WINDOW', 'AISLE']
+
+        for i in range(total_seats):
+            seat_num = f"{class_code}-{i+1}"
+            berth = berth_types[i % len(berth_types)]
+            is_win = 1 if (i % cfg['seats_per_row'] in (0, cfg['seats_per_row'] - 1)) else 0
+            conn.execute(
+                '''INSERT OR IGNORE INTO seats (
+                       train_id, travel_date, class_code, seat_number, berth_type, is_window, is_booked
+                   ) VALUES (?, ?, ?, ?, ?, ?, 0)''',
+                (train_id, travel_date, class_code, seat_num, berth, is_win)
+            )
+        conn.commit()
+        existing = conn.execute(
+            '''SELECT * FROM seats WHERE train_id = ? AND travel_date = ? AND class_code = ?
+               ORDER BY id ASC''',
+            (train_id, travel_date, class_code)
+        ).fetchall()
+
+    seats_list = []
+    fare_info = calculate_authoritative_fare(train_id, class_code, 'GN', 1)
+    for r in existing:
+        d = dict(r)
+        is_locked = bool(d['locked_until'] and d['locked_until'] > now_str)
+        is_mine = bool(is_locked and session_token and d['locked_by_session'] == session_token)
+        seats_list.append({
+            'seatNumber': d['seat_number'],
+            'class': d['class_code'],
+            'price': fare_info['fare_per_passenger'],
+            'berthType': d['berth_type'],
+            'isWindow': bool(d['is_window']),
+            'isBooked': bool(d['is_booked']),
+            'isLocked': is_locked,
+            'isMine': is_mine,
+            'lockedUntil': d['locked_until']
+        })
+
+    conn.close()
+    return seats_list
+
+def lock_seats_transactional(train_id, travel_date, class_code, seat_numbers, session_token, lock_seconds=300):
+    """
+    Acquires a 5-minute temporary lock on selected seats to prevent double-booking.
+    Returns (success: bool, locked_seats: list, message: str, expires_in: int)
+    """
+    if not seat_numbers:
+        return False, [], "No seats specified.", 0
+
+    conn = get_db_connection()
+    now = datetime.utcnow()
+    now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+    expiry_time = now + timedelta(seconds=lock_seconds)
+    expiry_str = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Release expired locks
+    conn.execute(
+        '''UPDATE seats SET locked_until = NULL, locked_by_session = NULL
+           WHERE locked_until IS NOT NULL AND locked_until < ?''',
+        (now_str,)
+    )
+
+    try:
+        # Validate that no seat is booked or locked by someone else
+        for seat_num in seat_numbers:
+            seat = conn.execute(
+                '''SELECT * FROM seats WHERE train_id = ? AND travel_date = ? AND class_code = ? AND seat_number = ?''',
+                (train_id, travel_date, class_code, seat_num)
+            ).fetchone()
+
+            if seat:
+                if seat['is_booked']:
+                    conn.close()
+                    return False, [], f"Seat {seat_num} is already booked.", 0
+                if seat['locked_until'] and seat['locked_until'] > now_str and seat['locked_by_session'] != session_token:
+                    conn.close()
+                    return False, [], f"Seat {seat_num} is currently held by another traveler.", 0
+
+        # Acquire lock
+        for seat_num in seat_numbers:
+            conn.execute(
+                '''INSERT INTO seats (train_id, travel_date, class_code, seat_number, berth_type, is_window, is_booked, locked_until, locked_by_session)
+                   VALUES (?, ?, ?, ?, 'LOWER', 0, 0, ?, ?)
+                   ON CONFLICT(train_id, travel_date, class_code, seat_number) DO UPDATE SET
+                       locked_until = excluded.locked_until,
+                       locked_by_session = excluded.locked_by_session''',
+                (train_id, travel_date, class_code, seat_num, expiry_str, session_token)
+            )
+
+        conn.commit()
+        return True, seat_numbers, "Seats locked for 5 minutes.", lock_seconds
+    except Exception as e:
+        conn.rollback()
+        return False, [], str(e), 0
+    finally:
+        conn.close()
