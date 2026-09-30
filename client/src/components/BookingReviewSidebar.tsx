@@ -1,7 +1,7 @@
 import React from "react";
 import { Train as TrainType } from "@/services/trainService";
 import { PassengerData } from "./AddPassengerModal";
-import { Calendar, Navigation, Info, Check, ShieldCheck, ChevronRight } from "lucide-react";
+import { Calendar, Info, Check, ShieldCheck, ChevronRight } from "lucide-react";
 
 interface BookingReviewSidebarProps {
   currentStep: 1 | 2 | 3; // 1 = Review, 2 = Payment, 3 = Confirm
@@ -12,6 +12,7 @@ interface BookingReviewSidebarProps {
   quota?: string;
   passengers?: PassengerData[];
   isFareCalculated?: boolean;
+  travelInsuranceOption?: "yes" | "no";
   onContinueAction?: () => void;
   actionButtonLabel?: string;
   actionButtonDisabled?: boolean;
@@ -27,6 +28,7 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
   quota = "GENERAL",
   passengers = [],
   isFareCalculated = false,
+  travelInsuranceOption = "yes",
   onContinueAction,
   actionButtonLabel,
   actionButtonDisabled = false,
@@ -35,7 +37,8 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
   const paxCount = passengers.length > 0 ? passengers.length : 1;
   const baseTotal = fare * paxCount;
   const convenienceFee = 35.40;
-  const travelInsurance = 0.45 * paxCount;
+  const insurancePerPax = travelInsuranceOption === "no" ? 0 : 0.45;
+  const travelInsurance = insurancePerPax * paxCount;
   const grandTotal = isFareCalculated ? baseTotal + convenienceFee + travelInsurance : baseTotal;
 
   return (
@@ -123,14 +126,6 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
           <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
             Journey Details
           </span>
-          <div className="flex items-center gap-1.5">
-            <span className="p-1.5 rounded-full border border-blue-600/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex items-center gap-1">
-              <Calendar className="w-3 h-3" /> Train Schedule
-            </span>
-            <span className="p-1.5 rounded-full bg-[#1b439b] text-white text-[10px] font-bold flex items-center gap-1">
-              <Navigation className="w-3 h-3 text-orange-400" /> Track Your Train
-            </span>
-          </div>
         </div>
 
         {/* Train Name & Number */}
@@ -213,10 +208,12 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
                 <span>Convenience Fee (Incl. of GST)</span>
                 <span className="font-bold text-slate-900 dark:text-slate-100">₹{convenienceFee.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                <span>Travel Insurance (Incl. of GST)</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">₹{travelInsurance.toFixed(2)}</span>
-              </div>
+              {travelInsurance > 0 && (
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Travel Insurance (Incl. of GST)</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">₹{travelInsurance.toFixed(2)}</span>
+                </div>
+              )}
             </>
           )}
 

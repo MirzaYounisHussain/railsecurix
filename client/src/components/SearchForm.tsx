@@ -189,7 +189,7 @@ export const SearchForm: React.FC = () => {
     const destKey = extractStationKey(toStation);
 
     if (srcKey === destKey) {
-      setSearchError("Source and destination cannot be the same. Please select different source and destination stations.");
+      setSearchError("Source and destination cannot be the same.");
       return;
     }
 
@@ -230,32 +230,50 @@ export const SearchForm: React.FC = () => {
               <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
                 {/* Row 1: From, Swap, To, Date */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
-                  {/* From Field (sm:col-span-4) */}
-                  <div className={`relative sm:col-span-4 ${showFromSuggestions ? "z-40" : "z-20"}`} ref={fromRef}>
-                    <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:bg-white dark:focus-within:bg-slate-800 transition">
-                      <Circle className="w-4 h-4 text-slate-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
-                          From
-                        </label>
-                        <input
-                          type="text"
-                          value={fromStation}
-                          onChange={(e) => {
-                            setFromStation(e.target.value);
-                            setShowFromSuggestions(true);
-                            setSearchError(null);
-                          }}
-                          onFocus={() => setShowFromSuggestions(true)}
-                          placeholder="Select Source"
-                          className="w-full bg-transparent text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none truncate"
-                        />
-                      </div>
-                    </div>
+                  {/* From Field (sm:col-span-4) — Popover matching Concession */}
+                  <div className="relative sm:col-span-4">
+                    <Popover open={showFromSuggestions} onOpenChange={setShowFromSuggestions}>
+                      <PopoverTrigger asChild>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setShowFromSuggestions(true)}
+                          className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs cursor-pointer transition ${
+                            showFromSuggestions
+                              ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <Circle className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
+                              From
+                            </label>
+                            <input
+                              type="text"
+                              value={fromStation}
+                              onChange={(e) => {
+                                setFromStation(e.target.value);
+                                setShowFromSuggestions(true);
+                                setSearchError(null);
+                              }}
+                              onFocus={() => setShowFromSuggestions(true)}
+                              placeholder="Select Source"
+                              className="w-full bg-transparent text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none truncate"
+                            />
+                          </div>
+                        </div>
+                      </PopoverTrigger>
 
-                    {/* From Autocomplete Dropdown */}
-                    {showFromSuggestions && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        onOpenAutoFocus={(e) => e.preventDefault()}
+                        className="w-[var(--radix-popover-trigger-width)] min-w-[260px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-0 z-[100] divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-150"
+                      >
                         {filterStations(fromStation).map((st) => (
                           <div
                             key={st.code}
@@ -264,7 +282,11 @@ export const SearchForm: React.FC = () => {
                               setShowFromSuggestions(false);
                               setSearchError(null);
                             }}
-                            className="px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition"
+                            className={`px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition ${
+                              fromStation === st.full
+                                ? "bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-extrabold"
+                                : ""
+                            }`}
                           >
                             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{st.name}</span>
                             <span className="font-mono text-[11px] font-black bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700">
@@ -272,8 +294,8 @@ export const SearchForm: React.FC = () => {
                             </span>
                           </div>
                         ))}
-                      </div>
-                    )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Circular Blue Swap Button (sm:col-span-1) */}
@@ -290,32 +312,50 @@ export const SearchForm: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* To Field (sm:col-span-4) */}
-                  <div className={`relative sm:col-span-4 ${showToSuggestions ? "z-40" : "z-20"}`} ref={toRef}>
-                    <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:bg-white dark:focus-within:bg-slate-800 transition">
-                      <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
-                          To
-                        </label>
-                        <input
-                          type="text"
-                          value={toStation}
-                          onChange={(e) => {
-                            setToStation(e.target.value);
-                            setShowToSuggestions(true);
-                            setSearchError(null);
-                          }}
-                          onFocus={() => setShowToSuggestions(true)}
-                          placeholder="Select Destination"
-                          className="w-full bg-transparent text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none truncate"
-                        />
-                      </div>
-                    </div>
+                  {/* To Field (sm:col-span-4) — Popover matching Concession */}
+                  <div className="relative sm:col-span-4">
+                    <Popover open={showToSuggestions} onOpenChange={setShowToSuggestions}>
+                      <PopoverTrigger asChild>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setShowToSuggestions(true)}
+                          className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs cursor-pointer transition ${
+                            showToSuggestions
+                              ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
+                              To
+                            </label>
+                            <input
+                              type="text"
+                              value={toStation}
+                              onChange={(e) => {
+                                setToStation(e.target.value);
+                                setShowToSuggestions(true);
+                                setSearchError(null);
+                              }}
+                              onFocus={() => setShowToSuggestions(true)}
+                              placeholder="Select Destination"
+                              className="w-full bg-transparent text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none truncate"
+                            />
+                          </div>
+                        </div>
+                      </PopoverTrigger>
 
-                    {/* To Autocomplete Dropdown */}
-                    {showToSuggestions && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        onOpenAutoFocus={(e) => e.preventDefault()}
+                        className="w-[var(--radix-popover-trigger-width)] min-w-[260px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-0 z-[100] divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-150"
+                      >
                         {filterStations(toStation).map((st) => (
                           <div
                             key={st.code}
@@ -324,7 +364,11 @@ export const SearchForm: React.FC = () => {
                               setShowToSuggestions(false);
                               setSearchError(null);
                             }}
-                            className="px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition"
+                            className={`px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition ${
+                              toStation === st.full
+                                ? "bg-blue-50/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-extrabold"
+                                : ""
+                            }`}
                           >
                             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{st.name}</span>
                             <span className="font-mono text-[11px] font-black bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700">
@@ -332,8 +376,8 @@ export const SearchForm: React.FC = () => {
                             </span>
                           </div>
                         ))}
-                      </div>
-                    )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Date Field matching Reference Image (sm:col-span-3) */}

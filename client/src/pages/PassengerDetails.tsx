@@ -57,9 +57,6 @@ export const PassengerDetails: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Loyalty Card Benefits state
-  const [loyaltyBenefit, setLoyaltyBenefit] = useState<"earn" | "pay" | "skip">("skip");
-
   // Mobile number - empty initially for fresh bookings
   const [mobileNumber, setMobileNumber] = useState("");
 
@@ -227,80 +224,6 @@ export const PassengerDetails: React.FC = () => {
                   >
                     + New Passenger
                   </button>
-                </div>
-              </div>
-
-              {/* IRCTC Co-branded Card Benefits Banner matching Reference Image 3 */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-100">
-                      RailSim Co-branded Card Benefits
-                    </h4>
-                    <p className="text-[11px] font-bold text-orange-600 dark:text-orange-400">
-                      (Earn More: 1% PG Waiver + 10% Reward Points)
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3 Loyalty Radio Buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                  <label
-                    onClick={() => setLoyaltyBenefit("earn")}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition ${
-                      loyaltyBenefit === "earn"
-                        ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200"
-                        : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="loyaltyBenefit"
-                      checked={loyaltyBenefit === "earn"}
-                      onChange={() => setLoyaltyBenefit("earn")}
-                      className="w-4 h-4 text-blue-600 accent-blue-600"
-                    />
-                    <span>Earn Loyalty Points</span>
-                  </label>
-
-                  <label
-                    onClick={() => setLoyaltyBenefit("pay")}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition ${
-                      loyaltyBenefit === "pay"
-                        ? "border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200"
-                        : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="loyaltyBenefit"
-                      checked={loyaltyBenefit === "pay"}
-                      onChange={() => setLoyaltyBenefit("pay")}
-                      className="w-4 h-4 text-blue-600 accent-blue-600"
-                    />
-                    <span>Pay with Loyalty Points</span>
-                  </label>
-
-                  <label
-                    onClick={() => setLoyaltyBenefit("skip")}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-bold cursor-pointer transition ${
-                      loyaltyBenefit === "skip"
-                        ? "border-orange-500 bg-orange-50/60 dark:bg-orange-950/30 text-orange-950 dark:text-orange-200 font-extrabold"
-                        : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="loyaltyBenefit"
-                      checked={loyaltyBenefit === "skip"}
-                      onChange={() => setLoyaltyBenefit("skip")}
-                      className="w-4 h-4 text-orange-600 accent-orange-600"
-                    />
-                    <span>Skip</span>
-                  </label>
                 </div>
               </div>
 
@@ -593,6 +516,7 @@ export const PassengerDetails: React.FC = () => {
               quota={quota}
               passengers={passengers}
               isFareCalculated={isFareCalculated}
+              travelInsuranceOption={travelInsurance}
               actionButtonLabel="Continue To Payment"
               actionButtonDisabled={!isFareCalculated || passengers.length === 0}
               onContinueAction={handleContinueToPayment}

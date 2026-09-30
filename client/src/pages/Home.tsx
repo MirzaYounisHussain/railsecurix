@@ -21,7 +21,7 @@ export const Home: React.FC = () => {
               Your Journey, <span className="text-orange-500">Made Secure</span>
             </h1>
             <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-600 dark:text-slate-300">
-              Official RailSim Express Reservation System • Fast, authentic Indian Railway ticket booking.
+              Official RailSim Express Reservation System
             </p>
           </div>
 

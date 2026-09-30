@@ -63,7 +63,7 @@ export const SearchResults: React.FC = () => {
       if (extractStationKey(source) === extractStationKey(destination)) {
         setTrains([]);
         setLoading(false);
-        setSearchError("Origin and destination stations cannot be the same.");
+        setSearchError("Source and destination cannot be the same.");
         return;
       }
       setLoading(true);
@@ -110,7 +110,7 @@ export const SearchResults: React.FC = () => {
       return;
     }
     if (extractStationKey(source) === extractStationKey(destination)) {
-      setSearchError("Origin and destination stations cannot be the same.");
+      setSearchError("Source and destination cannot be the same.");
       return;
     }
     setSearchError(null);

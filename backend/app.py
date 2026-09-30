@@ -883,7 +883,7 @@ def create_app():
 
         if src_key and dest_key and src_key == dest_key:
             return jsonify({
-                "error": "Source and destination cannot be the same. Please select different source and destination stations."
+                "error": "Source and destination cannot be the same."
             }), 400
 
         matching = search_trains_db(source, dest, travel_date)

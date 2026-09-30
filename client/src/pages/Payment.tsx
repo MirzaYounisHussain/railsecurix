@@ -55,10 +55,12 @@ export const Payment: React.FC = () => {
     }
   }, [state, navigate]);
 
+  const travelInsuranceOption: "yes" | "no" = state.travelInsurance === "no" ? "no" : "yes";
   const paxCount = passengers.length;
   const baseTotal = fare * paxCount;
   const convenienceFee = 35.40;
-  const travelInsurance = 0.45 * paxCount;
+  const insurancePerPax = travelInsuranceOption === "no" ? 0 : 0.45;
+  const travelInsurance = insurancePerPax * paxCount;
   const grandTotal = baseTotal + convenienceFee + travelInsurance;
 
   // Selected payment category and method
@@ -478,6 +480,7 @@ export const Payment: React.FC = () => {
               quota={quota}
               passengers={passengers}
               isFareCalculated={true}
+              travelInsuranceOption={travelInsuranceOption}
               actionButtonLabel="Pay & Book"
               isLoading={processing}
               onContinueAction={handlePayAndBook}

@@ -54,7 +54,7 @@ export const BookingConfirmation: React.FC = () => {
   const totalPrice = Number(booking.totalPrice) || 1395.85;
   const baseFare = Number(booking.fare) || 1360.00;
   const convenienceFee = booking.convenienceFee || 35.40;
-  const travelInsurance = booking.travelInsurance || 0.45;
+  const travelInsurance = booking.travelInsurance !== undefined ? Number(booking.travelInsurance) : 0.45;
   const transactionId = booking.transactionId || `TXN${Date.now()}`;
   const paymentMethod = booking.paymentMethod || "RailSim iPay";
 
@@ -310,12 +310,14 @@ export const BookingConfirmation: React.FC = () => {
                     ₹{convenienceFee.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
-                  <span>Travel Insurance (Incl. of GST)</span>
-                  <span className="font-bold text-slate-900 dark:text-slate-100">
-                    ₹{travelInsurance.toFixed(2)}
-                  </span>
-                </div>
+                {travelInsurance > 0 && (
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+                    <span>Travel Insurance (Incl. of GST)</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
+                      ₹{travelInsurance.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-baseline font-black">
                   <div>
                     <span className="text-sm text-[#0b2144] dark:text-white">
