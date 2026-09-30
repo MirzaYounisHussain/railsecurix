@@ -163,6 +163,58 @@ SCHEDULED_TRAINS = [
         "fare_base": 890.0,
         "runs_on": ["M", "T", "W", "T", "F", "S", "S"],
         "available_classes": ["1A", "2A", "3A"]
+    },
+    {
+        "id": "T22439",
+        "train_number": "22439",
+        "train_name": "VANDE BHARAT EX",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "JAT - Jammu Tawi",
+        "departure_time": "06:00",
+        "arrival_time": "12:43",
+        "duration": "06h 43m",
+        "fare_base": 1100.0,
+        "runs_on": ["M", "T", "W", "F", "S", "S"],
+        "available_classes": ["EC", "CC"]
+    },
+    {
+        "id": "T12919",
+        "train_number": "12919",
+        "train_name": "MALWA EXPRESS",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "JAT - Jammu Tawi",
+        "departure_time": "04:30",
+        "arrival_time": "14:30",
+        "duration": "10h 00m",
+        "fare_base": 450.0,
+        "runs_on": ["M", "T", "W", "T", "F", "S", "S"],
+        "available_classes": ["SL", "3E", "3A", "2A", "1A"]
+    },
+    {
+        "id": "T12477",
+        "train_number": "12477",
+        "train_name": "JAM SVDK EXP",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "JAT - Jammu Tawi",
+        "departure_time": "05:40",
+        "arrival_time": "14:50",
+        "duration": "09h 10m",
+        "fare_base": 480.0,
+        "runs_on": ["M", "T", "W", "T", "F", "S", "S"],
+        "available_classes": ["SL", "3E", "3A", "2A", "1A"]
+    },
+    {
+        "id": "T20847",
+        "train_number": "20847",
+        "train_name": "DURG MCTM SF",
+        "source_station": "NDLS - New Delhi",
+        "dest_station": "JAT - Jammu Tawi",
+        "departure_time": "07:45",
+        "arrival_time": "17:43",
+        "duration": "09h 58m",
+        "fare_base": 460.0,
+        "runs_on": ["M", "T", "W", "T", "F", "S", "S"],
+        "available_classes": ["2A", "3A", "SL"]
     }
 ]
 

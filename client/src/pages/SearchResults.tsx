@@ -1,317 +1,298 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { searchTrains, Train, getAllTrains } from "@/services/trainService";
+import { searchTrains, Train as TrainType, getAllTrains } from "@/services/trainService";
 import TrainCard from "@/components/TrainCard";
-import Loader from "@/components/Loader";
-import { useAuth } from "@/contexts/AuthContext";
-import { AlertTriangle, Filter, ArrowRightLeft, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import QuickServicesModal from "@/components/QuickServicesModal";
+import {
+  ArrowLeft,
+  ArrowRightLeft,
+  Calendar,
+  Filter,
+  ArrowUpDown,
+  Circle,
+  MapPin,
+  PieChart,
+  Network,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+  X,
+} from "lucide-react";
 
-interface FilterState {
-  minPrice: number;
-  maxPrice: number;
-  departureTimeFrom: number;
-  departureTimeTo: number;
-}
-
-const SearchResults = () => {
+export const SearchResults: React.FC = () => {
   const [params] = useSearchParams();
-  const [trains, setTrains] = useState<Train[]>([]);
-  const [allTrainsInSystem, setAllTrainsInSystem] = useState<Train[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"price" | "time" | "duration">("price");
-  const [passengerCount, setPassengerCount] = useState<number>(1);
-  const [filters, setFilters] = useState<FilterState>({
-    minPrice: 0,
-    maxPrice: 5000,
-    departureTimeFrom: 0,
-    departureTimeTo: 24,
-  });
-  const [maxPrice, setMaxPrice] = useState(5000);
-  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const source = params.get("source") || "";
-  const destination = params.get("destination") || "";
-  const date = params.get("date") || new Date().toISOString().slice(0, 10);
-  const quota = params.get("quota") || "GN";
+  const sourceParam = params.get("source") || "NEW DELHI - NDLS";
+  const destParam = params.get("destination") || "JAMMU TAWI - JAT";
+  const dateParam = params.get("date") || "2026-10-01";
+  const quotaParam = params.get("quota") || "General";
+  const concessionParam = params.get("concession") || "None";
 
+  // Editable search bar states
+  const [source, setSource] = useState(sourceParam);
+  const [destination, setDestination] = useState(destParam);
+  const [date, setDate] = useState(dateParam);
+  const [quota, setQuota] = useState(quotaParam);
+  const [concession, setConcession] = useState(concessionParam);
+
+  // Train data
+  const [trains, setTrains] = useState<TrainType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDateIdx, setSelectedDateIdx] = useState(2); // Thu, 01 Oct
+  const [quickServiceModal, setQuickServiceModal] = useState<"pnr" | "track" | null>(null);
+
+  // Load trains from backend
   useEffect(() => {
-    const loadData = async () => {
+    const fetchResults = async () => {
       setLoading(true);
       try {
-        const [allTrains, searchedTrains] = await Promise.all([
-          getAllTrains(),
-          searchTrains(source, destination, date, quota),
-        ]);
-        setAllTrainsInSystem(allTrains);
-        setTrains(searchedTrains);
-
-        if (searchedTrains.length > 0) {
-          const max = Math.max(...searchedTrains.map((t) => t.fare));
-          const roundedMax = Math.max(2000, Math.ceil(max / 500) * 500);
-          setMaxPrice(roundedMax);
-          setFilters((f) => ({ ...f, maxPrice: roundedMax }));
+        const results = await searchTrains(source, destination, date, quota);
+        if (results && results.length > 0) {
+          setTrains(results);
+        } else {
+          const all = await getAllTrains();
+          setTrains(all);
         }
-      } catch (error) {
-        console.error("Error loading trains:", error);
-        setTrains([]);
+      } catch (err) {
+        console.error("Failed to fetch trains:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    loadData();
+    fetchResults();
   }, [source, destination, date, quota]);
 
-  const handleBook = (train: Train) => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
+  // Date Tabs for Carousel matching Reference Image 9
+  const dateTabs = [
+    { day: "Tue, 29 Sep", count: "15 Trains", value: "2026-09-29" },
+    { day: "Wed, 30 Sep", count: "14 Trains", value: "2026-09-30" },
+    { day: "Thu, 01 Oct", count: "15 Trains", value: "2026-10-01" },
+    { day: "Fri, 02 Oct", count: "14 Trains", value: "2026-10-02" },
+    { day: "Sat, 03 Oct", count: "15 Trains", value: "2026-10-03" },
+    { day: "Sun, 04 Oct", count: "14 Trains", value: "2026-10-04" },
+    { day: "Mon, 05 Oct", count: "14 Trains", value: "2026-10-05" },
+  ];
 
-    if (train.seatsAvailable < passengerCount) {
-      alert(`Only ${train.seatsAvailable} seats available on this train.`);
-      return;
-    }
+  const handleSwap = () => {
+    const temp = source;
+    setSource(destination);
+    setDestination(temp);
+  };
 
+  const handleUpdateSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(
+      `/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${date}&quota=${encodeURIComponent(quota)}&concession=${encodeURIComponent(concession)}`
+    );
+  };
+
+  const handleBookClass = (train: TrainType, classCode: string, fare: number, status: string) => {
     navigate("/passenger-details", {
       state: {
-        train,
+        train: {
+          ...train,
+          fare,
+        },
+        selectedClass: classCode,
+        fare,
+        status,
         date,
-        passengerCount,
         quota,
+        concession,
+        passengerCount: 1,
       },
     });
   };
 
-  const calculateDurationHours = (train: Train): number => {
-    try {
-      const [depH, depM] = train.departureTime.split(":").map(Number);
-      const [arrH, arrM] = train.arrivalTime.split(":").map(Number);
-      let diff = arrH * 60 + arrM - (depH * 60 + depM);
-      if (diff < 0) diff += 24 * 60;
-      return diff / 60;
-    } catch {
-      return 4;
-    }
-  };
-
-  const availableTrains = trains.filter((t) => {
-    if (t.seatsAvailable <= 0) return false;
-    if (t.fare < filters.minPrice || t.fare > filters.maxPrice) return false;
-    const depHour = parseInt(t.departureTime.split(":")[0], 10) || 0;
-    if (depHour < filters.departureTimeFrom || depHour > filters.departureTimeTo) return false;
-    return true;
-  });
-
-  const sortedTrains = [...availableTrains].sort((a, b) => {
-    if (sortBy === "price") return a.fare - b.fare;
-    if (sortBy === "time") return parseInt(a.departureTime, 10) - parseInt(b.departureTime, 10);
-    if (sortBy === "duration") return calculateDurationHours(a) - calculateDurationHours(b);
-    return 0;
-  });
-
-  const resetFilters = () => {
-    setFilters({
-      minPrice: 0,
-      maxPrice: maxPrice,
-      departureTimeFrom: 0,
-      departureTimeTo: 24,
-    });
-  };
-
-  if (loading) return <Loader />;
-
   return (
-    <div className="container mx-auto max-w-6xl animate-fade-in px-4 py-8">
-      {/* Header Summary */}
-      <div className="mb-6 rounded-2xl border bg-card p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-2xl font-extrabold text-foreground">
-              <span>{source || "All Sources"}</span>
-              <ArrowRightLeft className="w-5 h-5 text-blue-600" />
-              <span>{destination || "All Destinations"}</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Date: <span className="font-semibold text-foreground">{date}</span> • Quota: <span className="font-semibold text-foreground">{quota}</span> • <span className="text-blue-600 font-semibold">{availableTrains.length} trains ready to book</span>
-            </p>
-          </div>
+    <div className="min-h-screen bg-slate-100/70 dark:bg-slate-950 pb-16">
+      {/* 1. Sub-Header: Back Button + Horizontal Modify Search Bar matching Reference Image 9 */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-2xs py-3 px-4 sm:px-6 lg:px-8 sticky top-[60px] z-30">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/")}
+            className="px-5 py-2 rounded-full border border-blue-600/40 hover:bg-slate-50 dark:hover:bg-slate-800 text-blue-700 dark:text-blue-300 font-extrabold text-xs shadow-2xs flex items-center gap-1.5 transition self-start lg:self-auto shrink-0"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
-              <ShieldCheck className="w-4 h-4" /> Live SQLite Inventory Verified
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Passenger Count Selection */}
-      <div className="mb-6 rounded-xl border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <label className="text-sm font-semibold text-foreground">Traveling Passengers</label>
-          <p className="text-xs text-muted-foreground">Select total seats required for this booking</p>
-        </div>
-        <select
-          value={passengerCount}
-          onChange={(e) => setPassengerCount(Number(e.target.value))}
-          className="rounded-lg border bg-background px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-600"
-        >
-          <option value={1}>1 Passenger</option>
-          <option value={2}>2 Passengers</option>
-          <option value={3}>3 Passengers</option>
-          <option value={4}>4 Passengers</option>
-        </select>
-      </div>
-
-      <div className="flex gap-6">
-        {/* Filters Sidebar */}
-        <div className={`${showFilters ? "block" : "hidden"} w-full md:block md:w-72`}>
-          <div className="sticky top-4 rounded-xl border bg-card p-5 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm">Filter Search</h3>
-              <button onClick={resetFilters} className="text-xs text-blue-600 hover:underline">
-                Reset All
-              </button>
+          {/* Horizontal Search Update Controls matching Reference Image 9 */}
+          <form onSubmit={handleUpdateSearch} className="flex-1 w-full flex flex-wrap items-center justify-end gap-2">
+            {/* From */}
+            <div className="flex-1 min-w-[140px] bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Circle className="w-3 h-3 text-blue-600 shrink-0" />
+                <span className="font-extrabold text-slate-800 dark:text-slate-100 truncate">
+                  {source.includes(" - ") ? source.split(" - ")[0] : source}
+                </span>
+              </div>
+              <X className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer ml-1" onClick={() => setSource("")} />
             </div>
 
-            {/* Price Filter */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Max Fare: ₹{filters.maxPrice}</label>
-              <Slider
-                value={[filters.maxPrice]}
-                onValueChange={(val) => setFilters((f) => ({ ...f, maxPrice: val[0] }))}
-                min={200}
-                max={maxPrice}
-                step={100}
-                className="w-full"
+            {/* Swap */}
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="p-2 rounded-lg bg-[#1b439b] text-white hover:bg-blue-800 transition"
+              title="Swap"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+            </button>
+
+            {/* To */}
+            <div className="flex-1 min-w-[140px] bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MapPin className="w-3 h-3 text-blue-600 shrink-0" />
+                <span className="font-extrabold text-slate-800 dark:text-slate-100 truncate">
+                  {destination.includes(" - ") ? destination.split(" - ")[0] : destination}
+                </span>
+              </div>
+              <X className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer ml-1" onClick={() => setDestination("")} />
+            </div>
+
+            {/* Date */}
+            <div className="w-32 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-transparent font-extrabold text-slate-800 dark:text-slate-100 focus:outline-none"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>₹{filters.minPrice}</span>
-                <span>₹{filters.maxPrice}</span>
-              </div>
+              <Calendar className="w-3.5 h-3.5 text-blue-600 ml-1 pointer-events-none" />
             </div>
 
-            {/* Time Filter */}
-            <div className="space-y-3 border-t pt-4">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Departure Window</label>
-              <div className="flex items-center gap-2">
-                <select
-                  value={filters.departureTimeFrom}
-                  onChange={(e) => setFilters((f) => ({ ...f, departureTimeFrom: Number(e.target.value) }))}
-                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-                >
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <option key={i} value={i}>{String(i).padStart(2, "0")}:00</option>
-                  ))}
-                </select>
-                <span className="text-xs text-muted-foreground">to</span>
-                <select
-                  value={filters.departureTimeTo}
-                  onChange={(e) => setFilters((f) => ({ ...f, departureTimeTo: Number(e.target.value) }))}
-                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-                >
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <option key={i} value={i}>{String(i).padStart(2, "0")}:00</option>
-                  ))}
-                </select>
-              </div>
+            {/* Quota */}
+            <div className="w-36 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs">
+              <select
+                value={quota}
+                onChange={(e) => setQuota(e.target.value)}
+                className="w-full bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+              >
+                <option value="General" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">General</option>
+                <option value="Ladies" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Ladies</option>
+                <option value="Lower Berth / Sr. Citizen" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Lower Berth / Sr. Citizen</option>
+                <option value="Person with Disability" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Person with Disability</option>
+                <option value="Duty Pass" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Duty Pass</option>
+                <option value="Tatkal" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Tatkal</option>
+                <option value="Premium Tatkal" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Premium Tatkal</option>
+              </select>
             </div>
 
-            <Button
-              onClick={() => setShowFilters(false)}
-              variant="outline"
-              size="sm"
-              className="w-full md:hidden"
+            {/* Concession */}
+            <div className="w-28 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs">
+              <select
+                value={concession}
+                onChange={(e) => setConcession(e.target.value)}
+                className="w-full bg-transparent font-bold text-slate-800 dark:text-slate-100 focus:outline-none cursor-pointer"
+              >
+                <option value="None" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">None</option>
+                <option value="Person with Disability" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Person with Disability</option>
+                <option value="Escort" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Escort</option>
+              </select>
+            </div>
+
+            {/* Update Action CTA */}
+            <button
+              type="submit"
+              className="bg-[#2b39cc] hover:bg-[#202da8] text-white font-extrabold text-xs px-5 py-2 rounded-full shadow transition"
             >
-              Apply Filters
-            </Button>
-          </div>
-        </div>
-
-        {/* Train Cards List */}
-        <div className="flex-1">
-          <div className="mb-4 flex items-center justify-between">
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              variant="outline"
-              size="sm"
-              className="md:hidden gap-2"
-            >
-              <Filter className="h-4 w-4" /> Filters
-            </Button>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-muted-foreground">Sort By:</span>
-              <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-                <SelectTrigger className="w-44 text-xs font-medium">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="price">Fare: Low to High</SelectItem>
-                  <SelectItem value="time">Departure Time</SelectItem>
-                  <SelectItem value="duration">Fastest Duration</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {sortedTrains.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center bg-card">
-              <AlertTriangle className="h-10 w-10 text-amber-500" />
-              <p className="text-base font-bold text-foreground">No Trains Match Filter Criteria</p>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Try expanding your price range, departure window, or clear filters to view all scheduled trains.
-              </p>
-              <Button onClick={resetFilters} variant="outline" size="sm" className="mt-2">
-                Reset Filters
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sortedTrains.map((t) => (
-                <TrainCard
-                  key={t.id}
-                  train={t}
-                  onBook={handleBook}
-                  seatsAvailable={t.seatsAvailable}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Alternate System Trains Recommendation */}
-          {sortedTrains.length === 0 && allTrainsInSystem.length > 0 && (
-            <div className="mt-12 border-t pt-8">
-              <h2 className="text-lg font-bold mb-4">Other Available Routes in System</h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {allTrainsInSystem.slice(0, 4).map((alt) => (
-                  <div key={alt.id} className="rounded-xl border bg-card p-4 hover:border-blue-500 transition shadow-sm">
-                    <p className="font-bold text-sm">{alt.trainName} (#{alt.trainNumber})</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {alt.source} → {alt.destination} • {alt.departureTime}
-                    </p>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="font-extrabold text-blue-600 text-sm">₹{alt.fare}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate(`/search?source=${alt.source}&destination=${alt.destination}&date=${date}`)}
-                      >
-                        View Route
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              Update
+            </button>
+          </form>
         </div>
       </div>
+
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
+        {/* 2. Date Navigation Carousel matching Reference Image 9 */}
+        <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-2xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800">
+          {/* Left Arrow */}
+          <button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {/* Date Chips Carousel */}
+          <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {dateTabs.map((tab, idx) => {
+              const isSelected = selectedDateIdx === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setSelectedDateIdx(idx);
+                    setDate(tab.value);
+                  }}
+                  className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-center transition ${
+                    isSelected
+                      ? "bg-blue-100/70 dark:bg-blue-950/80 border-2 border-blue-600 text-blue-900 dark:text-blue-200 shadow-2xs"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <span className="block text-xs font-black leading-tight">{tab.day}</span>
+                  <span className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Arrow */}
+          <button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          {/* Filter & Sort Controls on far right matching Reference Image 9 */}
+          <div className="hidden md:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+            <button className="px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-2xs hover:bg-slate-50">
+              <Filter className="w-3.5 h-3.5 text-blue-600" />
+              <span>Filter</span>
+            </button>
+            <button className="px-3.5 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-2xs hover:bg-slate-50">
+              <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
+              <span>Sort By</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Train Results List Cards */}
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-xs font-bold text-slate-500">Searching authoritative train schedule database...</p>
+          </div>
+        ) : trains.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-slate-200 dark:border-slate-800 space-y-3">
+            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">No Trains Found</h3>
+            <p className="text-xs text-slate-500">No scheduled trains match your selected route and date. Try another origin or destination.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {trains.map((train) => (
+              <TrainCard
+                key={train.id || train.trainNumber}
+                train={train}
+                searchDate="Thu, 01 Oct"
+                searchQuota={quota}
+                onBookClass={handleBookClass}
+                onTrackTrain={(tNum) => setQuickServiceModal("track")}
+                onViewSchedule={(tNum) => setQuickServiceModal("track")}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Services Modal for Track / PNR */}
+      <QuickServicesModal
+        type={quickServiceModal}
+        onClose={() => setQuickServiceModal(null)}
+      />
     </div>
   );
 };
