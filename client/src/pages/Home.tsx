@@ -5,24 +5,24 @@ import { ShieldCheck, Lock, Activity } from "lucide-react";
 export const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between">
-      {/* Hero Section matching Reference Image 223315 */}
+      {/* Hero Section matching Reference Image 1 composition */}
       <section
-        className="relative overflow-hidden pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-[position:right_top] bg-cover"
+        className="relative overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-[position:right_top] bg-cover lg:bg-[size:auto_100%] xl:bg-[size:1440px_auto] bg-[#eef3fe] dark:bg-slate-950"
         style={{ backgroundImage: "url('/HomeBannerNew_image3.png')" }}
       >
         {/* Subtle dark mode overlay only */}
         <div className="absolute inset-0 pointer-events-none hidden dark:block dark:bg-slate-950/75" />
 
-        <div className="max-w-7xl mx-auto relative z-10 space-y-6 sm:space-y-8">
+        <div className="max-w-7xl mx-auto relative z-10 flex flex-col justify-between min-h-[460px] sm:min-h-[500px] lg:min-h-[520px]">
           {/* Headline - on one line, no subtitle */}
-          <div className="text-left">
+          <div className="text-left mb-10 sm:mb-14 lg:mb-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#0b2144] dark:text-white tracking-tight leading-tight whitespace-nowrap">
               Your Journey, <span className="text-[#f95c19] dark:text-orange-500">Made Simple</span>
             </h1>
           </div>
 
-          {/* Elevated Main Train Search Card positioned to leave train visible on right */}
-          <div className="w-full max-w-5xl lg:max-w-4xl xl:max-w-5xl lg:mr-auto">
+          {/* Elevated Main Train Search Card positioned cleanly in lower hero area */}
+          <div className="w-full max-w-6xl mx-auto">
             <SearchForm />
           </div>
         </div>
