@@ -27,11 +27,11 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
 }) => {
   const [fullName, setFullName] = useState(initialData?.fullName || "");
   const [age, setAge] = useState(initialData?.age || "");
-  const [gender, setGender] = useState(initialData?.gender || "Male");
-  const [country, setCountry] = useState(initialData?.country || "India");
-  const [preferences, setPreferences] = useState(initialData?.preferences || "Window Side");
-  const [cateringService, setCateringService] = useState(initialData?.cateringService || "Veg");
-  const [saveForFuture, setSaveForFuture] = useState(initialData?.saveForFuture ?? true);
+  const [gender, setGender] = useState(initialData?.gender || "");
+  const [country, setCountry] = useState(initialData?.country || "");
+  const [preferences, setPreferences] = useState(initialData?.preferences || "");
+  const [cateringService, setCateringService] = useState(initialData?.cateringService || "");
+  const [saveForFuture, setSaveForFuture] = useState(initialData?.saveForFuture ?? false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,10 +47,10 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
       } else {
         setFullName("");
         setAge("");
-        setGender("Male");
-        setCountry("India");
-        setPreferences("Window Side");
-        setCateringService("Veg");
+        setGender("");
+        setCountry("");
+        setPreferences("");
+        setCateringService("");
         setSaveForFuture(false);
       }
       setError(null);
@@ -70,14 +70,18 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
       setError("Please enter a valid age between 1 and 120.");
       return;
     }
+    if (!gender) {
+      setError("Please select passenger's gender.");
+      return;
+    }
 
     onAddPassenger({
       fullName: fullName.trim(),
       age: numAge,
       gender,
-      country,
-      preferences,
-      cateringService,
+      country: country || "India",
+      preferences: preferences || "No Preference",
+      cateringService: cateringService || "No Food",
       saveForFuture,
     });
     onClose();
@@ -157,6 +161,7 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
                 onChange={(e) => setGender(e.target.value)}
                 className="w-full bg-transparent text-sm font-extrabold text-slate-900 dark:text-slate-100 focus:outline-none appearance-none cursor-pointer pr-4"
               >
+                <option value="" disabled className="text-slate-400 bg-white dark:bg-slate-800">Select Gender</option>
                 <option value="Male" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Male</option>
                 <option value="Female" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Female</option>
                 <option value="Transgender" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Transgender</option>
@@ -188,6 +193,7 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
               onChange={(e) => setCountry(e.target.value)}
               className="w-full bg-transparent text-sm font-extrabold text-slate-900 dark:text-slate-100 focus:outline-none appearance-none cursor-pointer pr-4"
             >
+              <option value="" disabled className="text-slate-400 bg-white dark:bg-slate-800">Select Country</option>
               <option value="India" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">India</option>
               <option value="Nepal" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Nepal</option>
               <option value="Bhutan" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Bhutan</option>
@@ -205,8 +211,9 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
               onChange={(e) => setPreferences(e.target.value)}
               className="w-full bg-transparent text-sm font-extrabold text-slate-900 dark:text-slate-100 focus:outline-none appearance-none cursor-pointer pr-4"
             >
-              <option value="Window Side" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Window Side</option>
+              <option value="" disabled className="text-slate-400 bg-white dark:bg-slate-800">Select Berth Preference</option>
               <option value="No Preference" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">No Preference</option>
+              <option value="Window Side" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Window Side</option>
               <option value="Lower" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Lower</option>
               <option value="Middle" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Middle</option>
               <option value="Upper" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Upper</option>
@@ -226,6 +233,7 @@ export const AddPassengerModal: React.FC<AddPassengerModalProps> = ({
               onChange={(e) => setCateringService(e.target.value)}
               className="w-full bg-transparent text-sm font-extrabold text-slate-900 dark:text-slate-100 focus:outline-none appearance-none cursor-pointer pr-4"
             >
+              <option value="" disabled className="text-slate-400 bg-white dark:bg-slate-800">Select Food Preference</option>
               <option value="Veg" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Veg</option>
               <option value="Non-Veg" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">Non-Veg</option>
               <option value="No Food" className="text-slate-900 bg-white dark:bg-slate-800 dark:text-slate-100">No Food</option>
