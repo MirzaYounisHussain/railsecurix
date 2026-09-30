@@ -866,10 +866,25 @@ def create_app():
     # --- Trains & Availability API ---
     @app.route('/api/trains/search', methods=['GET'])
     def api_search_trains():
-        source = request.args.get('source', '')
-        dest = request.args.get('destination', '')
+        source = request.args.get('source', '').strip()
+        dest = request.args.get('destination', '').strip()
         travel_date = request.args.get('date', (datetime.utcnow() + timedelta(days=2)).strftime('%Y-%m-%d'))
         quota = request.args.get('quota', 'GN')
+
+        # Prevent same source and destination station search
+        def extract_station_key(val):
+            if not val:
+                return ""
+            parts = val.split(" - ")
+            return parts[-1].strip().upper() if len(parts) > 1 else val.strip().upper()
+
+        src_key = extract_station_key(source)
+        dest_key = extract_station_key(dest)
+
+        if src_key and dest_key and src_key == dest_key:
+            return jsonify({
+                "error": "Source and destination cannot be the same. Please select different source and destination stations."
+            }), 400
 
         matching = search_trains_db(source, dest, travel_date)
         results = []
