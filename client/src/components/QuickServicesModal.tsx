@@ -99,15 +99,15 @@ export const QuickServicesModal: React.FC<QuickServicesModalProps> = ({
         <div className="p-6 space-y-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              {type === "pnr" ? "Enter 10-Digit PNR Number" : "Enter 5-Digit Train Number or Name"}
+              {type === "pnr" ? "Enter 10-Digit PNR Number" : "Enter 5-Digit Train Number"}
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={inputValue}
-                maxLength={type === "pnr" ? 10 : 30}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={type === "pnr" ? "e.g. 2458910342" : "e.g. 22439 or Vande Bharat"}
+                maxLength={type === "pnr" ? 10 : 5}
+                onChange={(e) => setInputValue(e.target.value.replace(/\D/g, ""))}
+                placeholder={type === "pnr" ? "e.g. 2487759146" : "e.g. 22439"}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>

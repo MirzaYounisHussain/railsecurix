@@ -14,7 +14,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onSwitchToRegister,
 }) => {
   const { login } = useAuth();
-  const [activeTab, setActiveTab] = useState<"user" | "agent">("user");
+  const [activeTab, setActiveTab] = useState<"user" | "admin">("user");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -101,11 +101,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
         </div>
 
-        {/* Dual Login Tabs (USER LOGIN vs AGENT LOGIN) */}
+        {/* Dual Login Tabs (USER LOGIN vs ADMIN LOGIN) */}
         <div className="grid grid-cols-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
           <button
             type="button"
-            onClick={() => setActiveTab("user")}
+            onClick={() => {
+              setActiveTab("user");
+              setError(null);
+            }}
             className={`py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all ${
               activeTab === "user"
                 ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900"
@@ -117,15 +120,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("agent")}
+            onClick={() => {
+              setActiveTab("admin");
+              setError(null);
+            }}
             className={`py-3.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all ${
-              activeTab === "agent"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900"
+              activeTab === "admin"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-900"
                 : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
             }`}
           >
-            <Train className="w-4 h-4" />
-            AGENT LOGIN
+            <Lock className="w-4 h-4" />
+            ADMIN LOGIN
           </button>
         </div>
 
@@ -186,6 +192,55 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             >
               Forgot account details?
             </a>
+          </div>
+
+          {/* Demo/Test Credentials Area matching Screenshot 223430 */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span>Demo / Test Credentials</span>
+              <span className="text-[10px] font-medium text-slate-400">Click to fill</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setUsername("testuser");
+                  setPassword("TestUser@123");
+                  setActiveTab("user");
+                  setError(null);
+                }}
+                className={`p-2.5 rounded-xl border text-left transition cursor-pointer shadow-2xs ${
+                  activeTab === "user"
+                    ? "bg-blue-50/80 dark:bg-blue-950/60 border-blue-400 dark:border-blue-600"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                }`}
+              >
+                <div className="font-black text-blue-600 dark:text-blue-400 text-[11px]">TEST USER</div>
+                <div className="font-mono text-[10px] text-slate-800 dark:text-slate-200 font-bold truncate">testuser</div>
+                <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">TestUser@123</div>
+              </div>
+
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setUsername("admin");
+                  setPassword("Admin@123");
+                  setActiveTab("admin");
+                  setError(null);
+                }}
+                className={`p-2.5 rounded-xl border text-left transition cursor-pointer shadow-2xs ${
+                  activeTab === "admin"
+                    ? "bg-orange-50/80 dark:bg-orange-950/60 border-orange-400 dark:border-orange-600"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                }`}
+              >
+                <div className="font-black text-orange-600 dark:text-orange-400 text-[11px]">ADMIN USER</div>
+                <div className="font-mono text-[10px] text-slate-800 dark:text-slate-200 font-bold truncate">admin</div>
+                <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">Admin@123</div>
+              </div>
+            </div>
           </div>
 
           {/* Primary LOGIN Button (Blue pill) */}

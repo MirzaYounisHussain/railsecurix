@@ -5,28 +5,24 @@ import { ShieldCheck, Lock, Activity } from "lucide-react";
 export const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between">
-      {/* Hero Section matching Reference Image & HomeBannerNew_image3 */}
+      {/* Hero Section matching Reference Image 223315 */}
       <section
-        className="relative overflow-hidden pt-6 sm:pt-10 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-right-top bg-cover"
+        className="relative overflow-hidden pt-8 sm:pt-12 pb-10 sm:pb-14 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-[position:right_top] bg-cover"
         style={{ backgroundImage: "url('/HomeBannerNew_image3.png')" }}
       >
-        {/* Responsive gradient overlay ensuring high contrast for text and search card */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-slate-50/95 via-slate-50/80 to-transparent dark:from-slate-950/95 dark:via-slate-950/85 dark:to-slate-950/50" />
-        <div className="absolute top-10 right-0 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Subtle dark mode overlay only */}
+        <div className="absolute inset-0 pointer-events-none hidden dark:block dark:bg-slate-950/75" />
 
         <div className="max-w-7xl mx-auto relative z-10 space-y-6 sm:space-y-8">
-          {/* Headline */}
-          <div className="text-left space-y-2 max-w-2xl">
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-[#0b2144] dark:text-white tracking-tight leading-tight">
-              Your Journey, <span className="text-orange-500">Made Secure</span>
+          {/* Headline - on one line, no subtitle */}
+          <div className="text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#0b2144] dark:text-white tracking-tight leading-tight whitespace-nowrap">
+              Your Journey, <span className="text-[#f95c19] dark:text-orange-500">Made Simple</span>
             </h1>
-            <p className="text-xs sm:text-sm md:text-base font-semibold text-slate-600 dark:text-slate-300">
-              Official RailSim Express Reservation System
-            </p>
           </div>
 
-          {/* Elevated Main Train Search Card */}
-          <div className="w-full">
+          {/* Elevated Main Train Search Card positioned to leave train visible on right */}
+          <div className="w-full max-w-5xl lg:max-w-4xl xl:max-w-5xl lg:mr-auto">
             <SearchForm />
           </div>
         </div>

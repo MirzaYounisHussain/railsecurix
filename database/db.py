@@ -272,7 +272,7 @@ def init_db():
         conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            ('testuser', generate_password_hash('password123'), 'Test Traveler', 'traveler@example.com', 'user')
+            ('testuser', generate_password_hash('TestUser@123'), 'Test Traveler', 'traveler@example.com', 'user')
         )
 
     # Seed Default Admin
@@ -281,7 +281,7 @@ def init_db():
         conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            ('admin', generate_password_hash('Admin@RailSim2026!'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
+            ('admin', generate_password_hash('Admin@123'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
         )
 
     # Seed Default Stations
