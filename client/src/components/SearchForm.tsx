@@ -104,10 +104,16 @@ export const SearchForm: React.FC = () => {
 
   const filterStations = (query: string) => {
     const q = query.toUpperCase().trim();
-    if (!q) return POPULAR_STATIONS.slice(0, 6);
+    if (!q) return POPULAR_STATIONS;
     return POPULAR_STATIONS.filter(
       (st) => st.name.includes(q) || st.code.includes(q) || st.full.includes(q)
-    ).slice(0, 6);
+    );
+  };
+
+  const extractStationKey = (val: string) => {
+    if (!val) return "";
+    const parts = val.split(" - ");
+    return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : val.trim().toUpperCase();
   };
 
   const handleSwap = () => {
@@ -117,6 +123,7 @@ export const SearchForm: React.FC = () => {
       setFromStation(toStation);
       setToStation(temp);
       setIsSwapping(false);
+      setSearchError(null);
     }, 150);
   };
 
@@ -171,6 +178,21 @@ export const SearchForm: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setSearchError(null);
+
+    if (!fromStation.trim() || !toStation.trim()) {
+      setSearchError("Please select both source and destination stations.");
+      return;
+    }
+
+    const srcKey = extractStationKey(fromStation);
+    const destKey = extractStationKey(toStation);
+
+    if (srcKey === destKey) {
+      setSearchError("Source and destination cannot be the same. Please select different source and destination stations.");
+      return;
+    }
+
     const sourceCode = fromStation.includes(" - ") ? fromStation.split(" - ")[0] : fromStation;
     const destCode = toStation.includes(" - ") ? toStation.split(" - ")[0] : toStation;
 
@@ -196,6 +218,12 @@ export const SearchForm: React.FC = () => {
       <div className="w-full max-w-5xl mx-auto">
         {/* Main Search Card matching Reference Image 6, new, and oldhost */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-7 transition-all">
+          {searchError && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-bold flex items-center gap-2.5 animate-in fade-in duration-150 shadow-xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{searchError}</span>
+            </div>
+          )}
           <form onSubmit={handleSearch}>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
               {/* Left/Main Search Controls (8 columns) */}
@@ -203,7 +231,7 @@ export const SearchForm: React.FC = () => {
                 {/* Row 1: From, Swap, To, Date */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
                   {/* From Field (sm:col-span-4) */}
-                  <div className="relative sm:col-span-4" ref={fromRef}>
+                  <div className={`relative sm:col-span-4 ${showFromSuggestions ? "z-40" : "z-20"}`} ref={fromRef}>
                     <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:bg-white dark:focus-within:bg-slate-800 transition">
                       <Circle className="w-4 h-4 text-slate-400 shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -216,6 +244,7 @@ export const SearchForm: React.FC = () => {
                           onChange={(e) => {
                             setFromStation(e.target.value);
                             setShowFromSuggestions(true);
+                            setSearchError(null);
                           }}
                           onFocus={() => setShowFromSuggestions(true)}
                           placeholder="Select Source"
@@ -226,13 +255,14 @@ export const SearchForm: React.FC = () => {
 
                     {/* From Autocomplete Dropdown */}
                     {showFromSuggestions && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-30 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
                         {filterStations(fromStation).map((st) => (
                           <div
                             key={st.code}
                             onClick={() => {
                               setFromStation(st.full);
                               setShowFromSuggestions(false);
+                              setSearchError(null);
                             }}
                             className="px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition"
                           >
@@ -261,7 +291,7 @@ export const SearchForm: React.FC = () => {
                   </div>
 
                   {/* To Field (sm:col-span-4) */}
-                  <div className="relative sm:col-span-4" ref={toRef}>
+                  <div className={`relative sm:col-span-4 ${showToSuggestions ? "z-40" : "z-20"}`} ref={toRef}>
                     <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-xs focus-within:ring-2 focus-within:ring-blue-600 focus-within:bg-white dark:focus-within:bg-slate-800 transition">
                       <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                       <div className="flex-1 min-w-0">
@@ -274,6 +304,7 @@ export const SearchForm: React.FC = () => {
                           onChange={(e) => {
                             setToStation(e.target.value);
                             setShowToSuggestions(true);
+                            setSearchError(null);
                           }}
                           onFocus={() => setShowToSuggestions(true)}
                           placeholder="Select Destination"
@@ -284,13 +315,14 @@ export const SearchForm: React.FC = () => {
 
                     {/* To Autocomplete Dropdown */}
                     {showToSuggestions && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-30 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-150">
                         {filterStations(toStation).map((st) => (
                           <div
                             key={st.code}
                             onClick={() => {
                               setToStation(st.full);
                               setShowToSuggestions(false);
+                              setSearchError(null);
                             }}
                             className="px-3.5 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-left transition"
                           >
@@ -411,32 +443,41 @@ export const SearchForm: React.FC = () => {
                 {/* Row 2: Quota, Concession, Search Button */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1">
                   {/* Quota Custom Dropdown matching Reference Image (sm:col-span-4) */}
-                  <div className="relative sm:col-span-4" ref={quotaRef}>
-                    <div
-                      onClick={() => setShowQuotaDropdown(!showQuotaDropdown)}
-                      className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-xs cursor-pointer transition ${
-                        showQuotaDropdown
-                          ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <PieChart className="w-4 h-4 text-slate-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
-                            Quota
-                          </label>
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 block truncate">
-                            {quota}
-                          </span>
+                  <div className="relative sm:col-span-4">
+                    <Popover open={showQuotaDropdown} onOpenChange={setShowQuotaDropdown}>
+                      <PopoverTrigger asChild>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-xs cursor-pointer transition ${
+                            showQuotaDropdown
+                              ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <PieChart className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
+                                Quota
+                              </label>
+                              <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 block truncate">
+                                {quota}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         </div>
-                      </div>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
+                      </PopoverTrigger>
 
-                    {/* Quota Options Dropdown matching Reference Image new */}
-                    {showQuotaDropdown && (
-                      <div className="absolute left-0 right-0 sm:w-64 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-40 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        className="w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-0 z-[100] divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                      >
                         {QUOTA_OPTIONS.map((opt) => (
                           <div
                             key={opt.value}
@@ -453,37 +494,46 @@ export const SearchForm: React.FC = () => {
                             {opt.label}
                           </div>
                         ))}
-                      </div>
-                    )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Concession Custom Dropdown matching Reference Image (sm:col-span-4) */}
-                  <div className="relative sm:col-span-4" ref={concessionRef}>
-                    <div
-                      onClick={() => setShowConcessionDropdown(!showConcessionDropdown)}
-                      className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-xs cursor-pointer transition ${
-                        showConcessionDropdown
-                          ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Network className="w-4 h-4 text-slate-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
-                            Concession
-                          </label>
-                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 block truncate">
-                            {concession}
-                          </span>
+                  <div className="relative sm:col-span-4">
+                    <Popover open={showConcessionDropdown} onOpenChange={setShowConcessionDropdown}>
+                      <PopoverTrigger asChild>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`bg-slate-50 dark:bg-slate-800/80 border rounded-2xl px-3.5 py-2.5 flex items-center justify-between shadow-xs cursor-pointer transition ${
+                            showConcessionDropdown
+                              ? "border-blue-600 ring-2 ring-blue-600/20 bg-white dark:bg-slate-800"
+                              : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Network className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 cursor-pointer">
+                                Concession
+                              </label>
+                              <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 block truncate">
+                                {concession}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         </div>
-                      </div>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
+                      </PopoverTrigger>
 
-                    {/* Concession Options Dropdown */}
-                    {showConcessionDropdown && (
-                      <div className="absolute left-0 right-0 sm:w-64 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-40 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        className="w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-0 z-[100] divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                      >
                         {CONCESSION_OPTIONS.map((opt) => (
                           <div
                             key={opt.value}
@@ -500,8 +550,8 @@ export const SearchForm: React.FC = () => {
                             {opt.label}
                           </div>
                         ))}
-                      </div>
-                    )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {/* Search Trains CTA Button matching Reference Image (sm:col-span-4) */}
