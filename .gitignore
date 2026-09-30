@@ -119,3 +119,6 @@ $RECYCLE.BIN/
 
 # Linux
 .directory
+
+.vercel
+.env*
