@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import QuickServicesModal from "./QuickServicesModal";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
