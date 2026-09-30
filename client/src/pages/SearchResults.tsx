@@ -20,6 +20,12 @@ import {
   X,
 } from "lucide-react";
 
+const extractStationKey = (val: string) => {
+  if (!val) return "";
+  const parts = val.split(" - ");
+  return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : val.trim().toUpperCase();
+};
+
 export const SearchResults: React.FC = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -42,21 +48,37 @@ export const SearchResults: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDateIdx, setSelectedDateIdx] = useState(2); // Thu, 01 Oct
   const [quickServiceModal, setQuickServiceModal] = useState<"pnr" | "track" | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Load trains from backend
   useEffect(() => {
     const fetchResults = async () => {
+      setSearchError(null);
+      if (!source.trim() || !destination.trim()) {
+        setTrains([]);
+        setLoading(false);
+        setSearchError("Please select both origin and destination stations.");
+        return;
+      }
+      if (extractStationKey(source) === extractStationKey(destination)) {
+        setTrains([]);
+        setLoading(false);
+        setSearchError("Origin and destination stations cannot be the same.");
+        return;
+      }
       setLoading(true);
       try {
         const results = await searchTrains(source, destination, date, quota);
         if (results && results.length > 0) {
           setTrains(results);
         } else {
-          const all = await getAllTrains();
-          setTrains(all);
+          setTrains([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch trains:", err);
+        const msg = err?.response?.data?.error || "Failed to fetch trains.";
+        setSearchError(msg);
+        setTrains([]);
       } finally {
         setLoading(false);
       }
@@ -83,6 +105,15 @@ export const SearchResults: React.FC = () => {
 
   const handleUpdateSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!source.trim() || !destination.trim()) {
+      setSearchError("Please select both origin and destination stations.");
+      return;
+    }
+    if (extractStationKey(source) === extractStationKey(destination)) {
+      setSearchError("Origin and destination stations cannot be the same.");
+      return;
+    }
+    setSearchError(null);
     navigate(
       `/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}&date=${date}&quota=${encodeURIComponent(quota)}&concession=${encodeURIComponent(concession)}`
     );
@@ -208,6 +239,12 @@ export const SearchResults: React.FC = () => {
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
+        {searchError && (
+          <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex items-center gap-3 text-sm font-bold text-red-700 dark:text-red-400 shadow-xs">
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+            <span>{searchError}</span>
+          </div>
+        )}
         {/* 2. Date Navigation Carousel matching Reference Image 9 */}
         <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-2xl p-2.5 shadow-2xs border border-slate-200 dark:border-slate-800">
           {/* Left Arrow */}
