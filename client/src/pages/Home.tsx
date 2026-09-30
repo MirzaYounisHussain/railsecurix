@@ -7,7 +7,7 @@ export const Home: React.FC = () => {
     <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between">
       {/* Hero Section matching Reference Image 1 composition */}
       <section
-        className="relative overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-[position:right_top] bg-cover lg:bg-[size:auto_100%] xl:bg-[size:1440px_auto] bg-[#eef3fe] dark:bg-slate-950"
+        className="relative overflow-hidden pt-10 sm:pt-14 lg:pt-16 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-[position:right_top] bg-cover"
         style={{ backgroundImage: "url('/HomeBannerNew_image3.png')" }}
       >
         {/* Subtle dark mode overlay only */}
