@@ -55,8 +55,9 @@ export const SearchForm: React.FC = () => {
     return d.toISOString().split("T")[0];
   };
 
-  const [fromStation, setFromStation] = useState("NEW DELHI - NDLS");
-  const [toStation, setToStation] = useState("JAMMU TAWI - JAT");
+  const [fromStation, setFromStation] = useState("");
+  const [toStation, setToStation] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [date, setDate] = useState(getTodayDate());
   const [quota, setQuota] = useState("General");
   const [concession, setConcession] = useState("None");
