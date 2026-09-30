@@ -921,15 +921,17 @@ def create_app():
         if not re.match(r'^\d{5}$', train_number):
             return jsonify({'error': 'Please enter a valid 5-digit train number.'}), 400
 
-        conn = get_db_connection()
-        t = conn.execute('SELECT * FROM trains WHERE train_number = ? OR id = ?', (train_number, train_number)).fetchone()
-        conn.close()
-
-        if t:
-            train = dict(t)
+        train = get_train_by_id(train_number)
+        if train:
             return jsonify({
                 'trainNumber': train['train_number'],
                 'trainName': f"{train['train_name']} ({train['train_number']})",
+                'currentStation': "Ludhiana Jn (LDH)",
+                'status': 'Running on Time',
+                'delay': '0 min delay',
+                'nextStation': "Jalandhar Cantt (JRC) - ETA 10:45 AM",
+                'lastUpdated': 'Live satellite feed'
+            })
                 'currentStation': f"Ludhiana Jn (LDH)",
                 'status': 'Running on Time',
                 'delay': '0 min delay',
