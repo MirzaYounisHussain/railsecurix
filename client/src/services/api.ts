@@ -4,7 +4,7 @@
  * Discards Firebase; uses server-side sessions and SQLite persistence.
  */
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL as string).replace(/\/$/, '') : '') + '/api';
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const config: RequestInit = {
@@ -14,7 +14,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       'Accept': 'application/json',
       ...(options.headers || {}),
     },
-    credentials: 'same-origin', // Include session cookies
+    credentials: API_BASE.startsWith('http') ? 'include' : 'same-origin',
   };
 
   const response = await fetch(`${API_BASE}${endpoint}`, config);
