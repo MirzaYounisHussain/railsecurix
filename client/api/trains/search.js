@@ -1,4 +1,4 @@
-import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota } from '../_data.ts';
+import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota } from '../_data.js';
 
 const POPULAR_STATIONS = [
   { name: "NEW DELHI", code: "NDLS", full: "NEW DELHI - NDLS" },
@@ -14,7 +14,7 @@ const POPULAR_STATIONS = [
   { name: "PATNA JN", code: "PNBE", full: "PATNA JN - PNBE" },
 ];
 
-function getStationCode(input: string): string {
+function getStationCode(input) {
   if (!input) return '';
   const clean = input.trim().toUpperCase();
   const found = POPULAR_STATIONS.find(s =>
@@ -25,7 +25,7 @@ function getStationCode(input: string): string {
   return parts.length > 1 ? parts[parts.length - 1].trim() : clean;
 }
 
-export default function handler(req: any, res: any) {
+export default function handler(req, res) {
   // CORS & caching headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -102,7 +102,8 @@ export default function handler(req: any, res: any) {
     });
 
     return res.status(200).json(results);
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 }
+

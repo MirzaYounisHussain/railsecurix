@@ -1,4 +1,4 @@
-export default function handler(req: any, res: any) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -7,13 +7,14 @@ export default function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  const body = req.body || {};
-  const seats = body.seats || [];
+  const transactionId = `TXN-${Date.now()}`;
 
   return res.status(200).json({
     success: true,
-    lockedSeats: seats,
-    message: `${seats.length} seat(s) held for 5 minutes.`,
-    expiresIn: 300
+    transactionId,
+    status: 'SUCCESS',
+    gateway: 'SIMULATED_RAIL_GATEWAY',
+    timestamp: new Date().toISOString()
   });
 }
+

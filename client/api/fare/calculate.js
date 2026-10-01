@@ -1,6 +1,6 @@
-import { SCHEDULED_TRAINS, CLASS_INFO, QUOTA_INFO, normalizeQuota } from '../_data.ts';
+import { SCHEDULED_TRAINS, CLASS_INFO, QUOTA_INFO, normalizeQuota } from '../_data.js';
 
-export default function handler(req: any, res: any) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -31,7 +31,8 @@ export default function handler(req: any, res: any) {
     quota_surcharge_pct: qMeta.surcharge_pct,
     fare_per_passenger: farePerPax,
     reservation_fee_per_pax: reservationFee,
-    num_passengers: Number(numPassengers || 1),
+    num_passengers(numPassengers || 1),
     total_fare: totalFare
   });
 }
+

@@ -1,21 +1,6 @@
-export interface TrainRecord {
-  id: string;
-  train_number: string;
-  train_name: string;
-  source_code: string;
-  dest_code: string;
-  source_station: string;
-  dest_station: string;
-  departure_time: string;
-  arrival_time: string;
-  duration: string;
-  fare_base: number;
-  runs_on: string[];
-  available_classes: string[];
-  total_seats: number;
-}
 
-export const CLASS_INFO: Record<string, { name: string; code: string; multiplier: number }> = {
+
+export const CLASS_INFO = {
   '1A': { name: '1A (AC First)', code: '1A', multiplier: 3.2 },
   '2A': { name: '2A (AC 2 Tier)', code: '2A', multiplier: 2.1 },
   '3A': { name: '3A (AC 3 Tier)', code: '3A', multiplier: 1.5 },
@@ -26,14 +11,14 @@ export const CLASS_INFO: Record<string, { name: string; code: string; multiplier
   '2S': { name: '2S (Second Sitting)', code: '2S', multiplier: 0.45 },
 };
 
-export const QUOTA_INFO: Record<string, { name: string; code: string; surcharge_pct: number }> = {
+export const QUOTA_INFO = {
   'GN': { name: 'General (GN)', code: 'GN', surcharge_pct: 0.0 },
   'TQ': { name: 'Tatkal (TQ)', code: 'TQ', surcharge_pct: 0.25 },
   'PT': { name: 'Premium Tatkal (PT)', code: 'PT', surcharge_pct: 0.45 },
   'LD': { name: 'Ladies (LD)', code: 'LD', surcharge_pct: 0.0 },
 };
 
-export const SCHEDULED_TRAINS: TrainRecord[] = [
+export const SCHEDULED_TRAINS[] = [
   {
     id: "T12951",
     train_number: "12951",
@@ -277,10 +262,10 @@ export const SCHEDULED_TRAINS: TrainRecord[] = [
 ];
 
 export function getSimulatedAvailability(
-  train: TrainRecord,
-  classCode: string,
-  journeyDate: string,
-  quota: string = 'GN'
+  train,
+  classCode,
+  journeyDate,
+  quota = 'GN'
 ) {
   const classMeta = CLASS_INFO[classCode] || { name: classCode, code: classCode, multiplier: 1.0 };
   const quotaMeta = QUOTA_INFO[quota] || { name: 'General', code: 'GN', surcharge_pct: 0.0 };
@@ -343,7 +328,7 @@ export function getSimulatedAvailability(
   };
 }
 
-export function normalizeQuota(quota?: string): string {
+export function normalizeQuota(quota?) {
   if (!quota) return 'GN';
   const q = quota.trim().toUpperCase();
   if (q === 'GENERAL' || q === 'GN') return 'GN';
@@ -353,8 +338,9 @@ export function normalizeQuota(quota?: string): string {
   return 'GN';
 }
 
-export function extractStationKey(val?: string): string {
+export function extractStationKey(val?) {
   if (!val) return '';
   const parts = val.split(' - ');
   return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : val.trim().toUpperCase();
 }
+
