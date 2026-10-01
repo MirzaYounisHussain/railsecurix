@@ -16,20 +16,32 @@ export default function handler(req, res) {
     // POST /api/bookings/create
     // ------------------------------------------------------------------------
     if (action === 'create') {
-      const pnr = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      const pnr = `24${Math.floor(10000000 + Math.random() * 90000000)}`;
       const bookingId = Math.floor(1000 + Math.random() * 9000);
       const bookingRef = `BK-${Date.now().toString(36).toUpperCase()}`;
 
       const body = req.body || {};
-      const passengers = body.passengers || [{ name: 'Traveler', age: 30, gender: 'M' }];
+      const passengersRaw = body.passengers || [{ name: 'Traveler', age: 30, gender: 'M' }];
+      const travelClass = body.travelClass || '3A';
+
+      const passengers = passengersRaw.map((p, idx) => ({
+        name: p.name || `Passenger ${idx + 1}`,
+        age: Number(p.age) || 30,
+        gender: p.gender || 'M',
+        berth_choice: p.berth || p.preferences || 'NO_PREF',
+        seat_allocated: p.seat || `${travelClass}-${14 + idx} (Window Side)`,
+        status: 'CNF'
+      }));
+
+      const totalFare = body.totalFare || (1250 * passengers.length);
 
       return res.status(200).json({
         success: true,
         pnr,
         bookingId,
         bookingRef,
-        totalFare: 1250,
-        status: 'PAYMENT_PENDING',
+        totalFare,
+        status: 'CONFIRMED',
         passengers
       });
     }
