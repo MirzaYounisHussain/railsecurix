@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveUserBookingLocal, Booking } from "@/services/bookingService";
 import {
   CheckCircle,
   Copy,

@@ -98,6 +98,40 @@ export const Payment: React.FC = () => {
         method: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
       });
 
+      const currentUsername = user?.username || "testuser";
+      const seatStr = passengers.map((_, i) => `C2-${14 + i}`).join(", ");
+
+      const savedBooking: Booking = {
+        id: String(bookingRes.bookingId || bookingRes.pnr),
+        userId: currentUsername,
+        trainId: String(train.id || train.trainNumber),
+        trainNumber: String(train.trainNumber),
+        trainName: train.trainName,
+        passengerName: passengers[0]?.fullName || "Traveler",
+        age: Number(passengers[0]?.age || 30),
+        gender: passengers[0]?.gender === "Female" ? "F" : "M",
+        coach: selectedClass || "CC",
+        seatNumber: seatStr,
+        travelDate: date,
+        PNR: bookingRes.pnr,
+        bookingStatus: "confirmed",
+        totalAmount: grandTotal,
+        fare: fare,
+        source: train.source,
+        destination: train.destination,
+        departureTime: train.departureTime || "06:00 AM",
+        arrivalTime: train.arrivalTime || "12:43 PM",
+        passengers: passengers.map((p, idx) => ({
+          name: p.fullName,
+          age: Number(p.age),
+          gender: p.gender === "Female" ? "F" : "M",
+          berth: p.preferences,
+          seat: `C2-${14 + idx}`,
+        })),
+        createdAt: new Date().toISOString(),
+      };
+      saveUserBookingLocal(currentUsername, savedBooking);
+
       // 3. Navigate to ERS Confirmation page
       navigate("/booking-confirmation", {
         state: {
@@ -106,7 +140,7 @@ export const Payment: React.FC = () => {
           bookingRef: bookingRes.bookingRef,
           transactionId: paymentRes.transactionId || `TXN${Date.now()}`,
           coach: selectedClass || "CC",
-          seatNumber: passengers.map((_, i) => `C2-${14 + i}`).join(", "),
+          seatNumber: seatStr,
           trainName: train.trainName,
           trainNumber: train.trainNumber,
           source: train.source,
@@ -127,14 +161,50 @@ export const Payment: React.FC = () => {
     } catch (err: any) {
       console.error("Booking payment failed:", err);
       // Fallback simulated success if offline backend
+      const fallbackPnr = `245-${Math.floor(1000000 + Math.random() * 9000000)}`;
+      const fallbackId = Math.floor(1000 + Math.random() * 9000);
+      const currentUsername = user?.username || "testuser";
+      const seatStr = passengers.map((_, i) => `C2-${14 + i}`).join(", ");
+
+      const fallbackBooking: Booking = {
+        id: String(fallbackId),
+        userId: currentUsername,
+        trainId: String(train.id || train.trainNumber),
+        trainNumber: String(train.trainNumber),
+        trainName: train.trainName,
+        passengerName: passengers[0]?.fullName || "Traveler",
+        age: Number(passengers[0]?.age || 30),
+        gender: passengers[0]?.gender === "Female" ? "F" : "M",
+        coach: selectedClass || "CC",
+        seatNumber: seatStr,
+        travelDate: date,
+        PNR: fallbackPnr,
+        bookingStatus: "confirmed",
+        totalAmount: grandTotal,
+        fare: fare,
+        source: train.source,
+        destination: train.destination,
+        departureTime: train.departureTime || "06:00 AM",
+        arrivalTime: train.arrivalTime || "12:43 PM",
+        passengers: passengers.map((p, idx) => ({
+          name: p.fullName,
+          age: Number(p.age),
+          gender: p.gender === "Female" ? "F" : "M",
+          berth: p.preferences,
+          seat: `C2-${14 + idx}`,
+        })),
+        createdAt: new Date().toISOString(),
+      };
+      saveUserBookingLocal(currentUsername, fallbackBooking);
+
       navigate("/booking-confirmation", {
         state: {
-          PNR: `245-${Math.floor(1000000 + Math.random() * 9000000)}`,
-          bookingId: Math.floor(1000 + Math.random() * 9000),
+          PNR: fallbackPnr,
+          bookingId: fallbackId,
           bookingRef: `REF-${Date.now()}`,
           transactionId: `TXN${Date.now()}`,
           coach: selectedClass || "CC",
-          seatNumber: passengers.map((_, i) => `C2-${14 + i}`).join(", "),
+          seatNumber: seatStr,
           trainName: train.trainName,
           trainNumber: train.trainNumber,
           source: train.source,
@@ -143,7 +213,7 @@ export const Payment: React.FC = () => {
           arrivalTime: train.arrivalTime || "12:43 PM",
           travelDate: date,
           passengers: passengers,
-          passengerName: passengers[0]?.fullName || "mirza",
+          passengerName: passengers[0]?.fullName || "Traveler",
           fare: fare,
           totalPrice: grandTotal,
           convenienceFee,
