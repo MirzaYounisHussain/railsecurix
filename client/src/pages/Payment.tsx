@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import { saveUserBookingLocal, Booking } from "@/services/bookingService";
 import { Train as TrainType } from "@/services/trainService";
 import { PassengerData } from "@/components/AddPassengerModal";
 import { BookingReviewSidebar } from "@/components/BookingReviewSidebar";
