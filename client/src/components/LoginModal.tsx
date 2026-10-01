@@ -64,7 +64,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }, 500);
     } catch (err: any) {
       setLoading(false);
-      setError(err?.message || "Invalid credentials. Please verify your username and password.");
+      let errorText = "Invalid credentials. Please verify your username and password.";
+      if (typeof err === "string" && err.trim()) {
+        errorText = err;
+      } else if (err?.message && typeof err.message === "string" && err.message.trim()) {
+        errorText = err.message === "[object Object]"
+          ? "Invalid username or password. Please verify your credentials."
+          : err.message;
+      } else if (err?.error) {
+        errorText = typeof err.error === "string" ? err.error : (err.error?.message || JSON.stringify(err.error));
+      }
+      setError(errorText);
     }
   };
 

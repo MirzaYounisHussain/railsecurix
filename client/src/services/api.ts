@@ -21,8 +21,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
-    throw new Error(errorMsg);
+    let errorMsg = `Request failed with status ${response.status}`;
+    if (typeof data.error === 'string' && data.error.trim()) {
+      errorMsg = data.error;
+    } else if (data.error && typeof data.error === 'object') {
+      errorMsg = data.error.message || data.error.msg || data.error.error || JSON.stringify(data.error);
+    } else if (typeof data.message === 'string' && data.message.trim()) {
+      errorMsg = data.message;
+    } else if (data.message && typeof data.message === 'object') {
+      errorMsg = data.message.message || data.message.msg || JSON.stringify(data.message);
+    } else if (response.status === 404) {
+      errorMsg = `Service endpoint not found (${endpoint}).`;
+    } else if (response.status === 401) {
+      errorMsg = 'Invalid username or password. Please verify your credentials.';
+    }
+    throw new Error(String(errorMsg));
   }
 
   return data as T;

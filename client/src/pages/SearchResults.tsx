@@ -75,8 +75,9 @@ export const SearchResults: React.FC = () => {
           setTrains([]);
         }
       } catch (err: any) {
-        console.error("Failed to fetch trains:", err);
-        const msg = err?.response?.data?.error || "Failed to fetch trains.";
+        const msg = (typeof err?.message === "string" && err.message !== "[object Object]" && err.message) ||
+          err?.response?.data?.error ||
+          "Failed to fetch trains.";
         setSearchError(msg);
         setTrains([]);
       } finally {
