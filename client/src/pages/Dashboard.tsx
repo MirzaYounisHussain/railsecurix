@@ -14,7 +14,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([getUserBookings(user.uid), getAllTrains()])
+    const userKey = user.username || String(user.id);
+    Promise.all([getUserBookings(userKey), getAllTrains()])
       .then(([b, t]) => {
         setBookings(b);
         setTrains(t);

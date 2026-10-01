@@ -36,8 +36,9 @@ const Profile = () => {
 
     const loadData = async () => {
       try {
+        const userKey = user?.username || (user?.id ? String(user.id) : "testuser");
         const [b, t] = await Promise.all([
-          getUserBookings(user.uid),
+          getUserBookings(userKey),
           getAllTrains(),
         ]);
         setBookings(b);
@@ -77,15 +78,23 @@ const Profile = () => {
   today.setHours(0, 0, 0, 0);
 
   const upcomingBookings = bookings.filter((b) => {
+    if (b.bookingStatus === "cancelled") return false;
     const bookingDate = new Date(b.travelDate);
-    bookingDate.setHours(0, 0, 0, 0);
-    return bookingDate >= today && b.bookingStatus === "confirmed";
+    if (!isNaN(bookingDate.getTime())) {
+      bookingDate.setHours(0, 0, 0, 0);
+      return bookingDate >= today;
+    }
+    return true; // Default confirmed booking to upcoming
   });
 
   const pastBookings = bookings.filter((b) => {
+    if (b.bookingStatus === "cancelled") return false;
     const bookingDate = new Date(b.travelDate);
-    bookingDate.setHours(0, 0, 0, 0);
-    return bookingDate < today && b.bookingStatus === "confirmed";
+    if (!isNaN(bookingDate.getTime())) {
+      bookingDate.setHours(0, 0, 0, 0);
+      return bookingDate < today;
+    }
+    return false;
   });
 
   const cancelledBookings = bookings.filter(
