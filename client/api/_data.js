@@ -1,5 +1,3 @@
-
-
 export const CLASS_INFO = {
   '1A': { name: '1A (AC First)', code: '1A', multiplier: 3.2 },
   '2A': { name: '2A (AC 2 Tier)', code: '2A', multiplier: 2.1 },
@@ -18,7 +16,7 @@ export const QUOTA_INFO = {
   'LD': { name: 'Ladies (LD)', code: 'LD', surcharge_pct: 0.0 },
 };
 
-export const SCHEDULED_TRAINS[] = [
+export const SCHEDULED_TRAINS = [
   {
     id: "T12951",
     train_number: "12951",
@@ -261,12 +259,7 @@ export const SCHEDULED_TRAINS[] = [
   }
 ];
 
-export function getSimulatedAvailability(
-  train,
-  classCode,
-  journeyDate,
-  quota = 'GN'
-) {
+export function getSimulatedAvailability(train, classCode, journeyDate, quota = 'GN') {
   const classMeta = CLASS_INFO[classCode] || { name: classCode, code: classCode, multiplier: 1.0 };
   const quotaMeta = QUOTA_INFO[quota] || { name: 'General', code: 'GN', surcharge_pct: 0.0 };
 
@@ -328,7 +321,7 @@ export function getSimulatedAvailability(
   };
 }
 
-export function normalizeQuota(quota?) {
+export function normalizeQuota(quota) {
   if (!quota) return 'GN';
   const q = quota.trim().toUpperCase();
   if (q === 'GENERAL' || q === 'GN') return 'GN';
@@ -338,9 +331,8 @@ export function normalizeQuota(quota?) {
   return 'GN';
 }
 
-export function extractStationKey(val?) {
+export function extractStationKey(val) {
   if (!val) return '';
   const parts = val.split(' - ');
   return parts.length > 1 ? parts[parts.length - 1].trim().toUpperCase() : val.trim().toUpperCase();
 }
-
