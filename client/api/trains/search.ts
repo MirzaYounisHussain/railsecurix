@@ -1,4 +1,4 @@
-import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota, extractStationKey } from '../_data';
+import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota, extractStationKey } from '../_data.ts';
 
 export default function handler(req: any, res: any) {
   // CORS & caching headers

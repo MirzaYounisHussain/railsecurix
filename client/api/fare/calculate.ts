@@ -1,4 +1,4 @@
-import { SCHEDULED_TRAINS, CLASS_INFO, QUOTA_INFO, normalizeQuota } from '../_data';
+import { SCHEDULED_TRAINS, CLASS_INFO, QUOTA_INFO, normalizeQuota } from '../_data.ts';
 
 export default function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
