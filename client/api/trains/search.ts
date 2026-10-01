@@ -1,4 +1,29 @@
-import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota, extractStationKey } from '../_data.ts';
+import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota } from '../_data.ts';
+
+const POPULAR_STATIONS = [
+  { name: "NEW DELHI", code: "NDLS", full: "NEW DELHI - NDLS" },
+  { name: "JAMMU TAWI", code: "JAT", full: "JAMMU TAWI - JAT" },
+  { name: "MUMBAI CENTRAL", code: "BCT", full: "MUMBAI CENTRAL - BCT" },
+  { name: "HOWRAH JN", code: "HWH", full: "HOWRAH JN - HWH" },
+  { name: "KSR BENGALURU", code: "SBC", full: "KSR BENGALURU - SBC" },
+  { name: "CHENNAI CENTRAL", code: "MAS", full: "CHENNAI CENTRAL - MAS" },
+  { name: "VARANASI JN", code: "BSB", full: "VARANASI JN - BSB" },
+  { name: "PUNE JN", code: "PUNE", full: "PUNE JN - PUNE" },
+  { name: "AHMEDABAD JN", code: "ADI", full: "AHMEDABAD JN - ADI" },
+  { name: "LUCKNOW NR", code: "LKO", full: "LUCKNOW NR - LKO" },
+  { name: "PATNA JN", code: "PNBE", full: "PATNA JN - PNBE" },
+];
+
+function getStationCode(input: string): string {
+  if (!input) return '';
+  const clean = input.trim().toUpperCase();
+  const found = POPULAR_STATIONS.find(s =>
+    s.code === clean || s.name === clean || s.full === clean || clean.includes(s.code) || clean.includes(s.name)
+  );
+  if (found) return found.code;
+  const parts = clean.split(' - ');
+  return parts.length > 1 ? parts[parts.length - 1].trim() : clean;
+}
 
 export default function handler(req: any, res: any) {
   // CORS & caching headers
@@ -17,11 +42,11 @@ export default function handler(req: any, res: any) {
     const quotaParam = (req.query?.quota || 'GN').toString().trim();
     const normQuota = normalizeQuota(quotaParam);
 
-    const srcKey = extractStationKey(source);
-    const destKey = extractStationKey(dest);
+    const srcCode = getStationCode(source);
+    const destCode = getStationCode(dest);
 
     // Prevent same source and destination station search
-    if (srcKey && destKey && srcKey === destKey) {
+    if (srcCode && destCode && srcCode === destCode) {
       return res.status(400).json({
         error: 'Source and destination cannot be the same.'
       });
@@ -31,19 +56,22 @@ export default function handler(req: any, res: any) {
     const dClean = dest.toUpperCase();
 
     let matching = SCHEDULED_TRAINS.filter(t => {
-      const sMatch = !sClean ||
+      const sMatch = !source ||
+        (srcCode && t.source_code === srcCode) ||
         sClean === t.source_code ||
         t.source_station.toUpperCase().includes(sClean) ||
-        (srcKey && (srcKey === t.source_code || t.source_station.toUpperCase().includes(srcKey)));
+        (sClean && t.source_station.toUpperCase().split(' - ')[0].includes(sClean));
 
-      const dMatch = !dClean ||
+      const dMatch = !dest ||
+        (destCode && t.dest_code === destCode) ||
         dClean === t.dest_code ||
         t.dest_station.toUpperCase().includes(dClean) ||
-        (destKey && (destKey === t.dest_code || t.dest_station.toUpperCase().includes(destKey)));
+        (dClean && t.dest_station.toUpperCase().split(' - ')[0].includes(dClean));
 
       return sMatch && dMatch;
     });
 
+    // If no direct routes match, fallback to the network's top active express trains
     if (matching.length === 0) {
       matching = SCHEDULED_TRAINS.slice(0, 4);
     }
