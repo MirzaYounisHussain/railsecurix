@@ -59,6 +59,38 @@ export const BookingConfirmation: React.FC = () => {
   const travelInsurance = booking.travelInsurance !== undefined ? Number(booking.travelInsurance) : 0.45;
   const transactionId = booking.transactionId || `TXN${Date.now()}`;
   const paymentMethod = booking.paymentMethod || "RailSim iPay";
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (pnr) {
+      const currentUsername = user?.username || "testuser";
+      const seatStr = passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", ");
+      const confirmedBooking: Booking = {
+        id: String(booking.bookingId || pnr),
+        userId: currentUsername,
+        trainId: String(trainNumber),
+        trainNumber: String(trainNumber),
+        trainName: trainName,
+        passengerName: passengers[0]?.fullName || "Traveler",
+        age: Number(passengers[0]?.age || 30),
+        gender: passengers[0]?.gender === "Female" ? "F" : "M",
+        coach: coach,
+        seatNumber: seatStr,
+        travelDate: travelDate,
+        PNR: pnr,
+        bookingStatus: "confirmed",
+        totalAmount: totalPrice,
+        fare: baseFare,
+        source: source,
+        destination: destination,
+        departureTime: departureTime,
+        arrivalTime: arrivalTime,
+        passengers: passengers,
+        createdAt: new Date().toISOString(),
+      };
+      saveUserBookingLocal(currentUsername, confirmedBooking);
+    }
+  }, [pnr, user, booking.bookingId, trainNumber, trainName, coach, travelDate, totalPrice, baseFare, source, destination, departureTime, arrivalTime]);
 
   const handleCopyPNR = () => {
     navigator.clipboard.writeText(pnr);
