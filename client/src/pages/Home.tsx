@@ -15,8 +15,8 @@ export const Home: React.FC = () => {
 
         <div className="max-w-7xl mx-auto relative z-10 flex flex-col justify-between min-h-[460px] sm:min-h-[500px] lg:min-h-[520px]">
           {/* Headline - on one line, no subtitle */}
-          <div className="text-left mb-10 sm:mb-14 lg:mb-16">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#0b2144] dark:text-white tracking-tight leading-tight whitespace-nowrap">
+          <div className="text-left mt-6 sm:mt-10 lg:mt-14 mb-8 sm:mb-10 lg:mb-12">
+            <h1 className="text-[22px] sm:text-3xl md:text-4xl lg:text-[44px] font-bold text-[#0b2144] dark:text-white tracking-tight leading-tight whitespace-nowrap">
               Your Journey, <span className="text-[#f95c19] dark:text-orange-500">Made Simple</span>
             </h1>
           </div>
