@@ -201,7 +201,7 @@ export const BookingConfirmation: React.FC = () => {
           <div className="bg-[#0b2144] text-white p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-950">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight">RAILSIM EXPRESS</span>
+                <span className="text-lg font-black tracking-tight">RAILSECURIX</span>
                 <span className="px-2 py-0.5 text-[10px] font-black rounded bg-orange-500 text-white uppercase tracking-wider">
                   Official ERS
                 </span>

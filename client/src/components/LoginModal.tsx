@@ -93,7 +93,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
             <div>
               <span className="text-white font-black text-lg tracking-tight drop-shadow-xs block leading-none">
-                RailSim Express
+                RailSecurix
               </span>
               <span className="text-white/90 text-[10px] font-bold tracking-wide uppercase drop-shadow-xs">
                 Official Booking Access

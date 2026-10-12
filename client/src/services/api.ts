@@ -1,5 +1,5 @@
 /**
- * RailSim Express - Authoritative Backend API Client
+ * RailSecurix - Authoritative Backend API Client
  * Connects React frontend directly to the Flask REST API.
  * Discards Firebase; uses server-side sessions and SQLite persistence.
  */
@@ -61,7 +61,53 @@ export const api = {
     });
   },
 
-  async register(data: { username: string; password: string; fullName: string; email: string; confirmPassword?: string }): Promise<{ success: boolean; user: UserProfile }> {
+  async checkAvailability(username?: string, email?: string): Promise<{
+    success: boolean;
+    usernameAvailable: boolean;
+    usernameMessage: string;
+    emailAvailable: boolean;
+    emailMessage: string;
+  }> {
+    return request('/auth/check-availability', {
+      method: 'POST',
+      body: JSON.stringify({ username, email }),
+    });
+  },
+
+  async sendOtp(username: string, email: string): Promise<{
+    success: boolean;
+    message: string;
+    delivered?: boolean;
+    deliveryMethod?: string;
+    devOtp?: string;
+    cooldownSeconds?: number;
+    expiresInSeconds?: number;
+  }> {
+    return request('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ username, email }),
+    });
+  },
+
+  async verifyOtp(email: string, otp: string): Promise<{
+    success: boolean;
+    message: string;
+    verificationToken: string;
+  }> {
+    return request('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  async register(data: {
+    username: string;
+    password: string;
+    fullName: string;
+    email: string;
+    confirmPassword?: string;
+    verificationToken?: string;
+  }): Promise<{ success: boolean; user: UserProfile }> {
     return request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),

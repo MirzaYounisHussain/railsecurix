@@ -8,6 +8,9 @@ import json
 from datetime import datetime, timedelta
 import os
 import sqlite3
+import hashlib
+import hmac
+import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -254,6 +257,28 @@ def run_migrations(conn):
     if 'status' not in existing_pax_cols:
         conn.execute("ALTER TABLE passengers ADD COLUMN status TEXT DEFAULT 'CNF';")
 
+    # 3. Ensure case-insensitive unique indexes on users table
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase ON users(username COLLATE NOCASE);")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users(email COLLATE NOCASE);")
+
+    # 4. Ensure email_otps table exists
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS email_otps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            otp_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            purpose TEXT NOT NULL DEFAULT 'registration',
+            attempts INTEGER NOT NULL DEFAULT 0,
+            verified INTEGER NOT NULL DEFAULT 0,
+            verification_token TEXT,
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_email_otps_lookup ON email_otps(email, purpose, verified);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_email_otps_token ON email_otps(verification_token);")
+
     conn.commit()
 
 def init_db():
@@ -267,21 +292,21 @@ def init_db():
     run_migrations(conn)
 
     # Seed Default User
-    user = conn.execute('SELECT id FROM users WHERE username = ?', ('testuser',)).fetchone()
+    user = conn.execute('SELECT id FROM users WHERE username = ? COLLATE NOCASE', ('testuser',)).fetchone()
     if not user:
         conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            ('testuser', generate_password_hash('TestUser@123'), 'Test Traveler', 'traveler@example.com', 'user')
+            ('testuser', generate_password_hash('password123'), 'Test Traveler', 'traveler@example.com', 'user')
         )
 
     # Seed Default Admin
-    admin = conn.execute('SELECT id FROM users WHERE username = ?', ('admin',)).fetchone()
+    admin = conn.execute('SELECT id FROM users WHERE username = ? COLLATE NOCASE', ('admin',)).fetchone()
     if not admin:
         conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            ('admin', generate_password_hash('Admin@123'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
+            ('admin', generate_password_hash('Admin@RailSim2026!'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
         )
 
     # Seed Default Stations
@@ -314,9 +339,20 @@ def init_db():
 # User Model Operations
 # --------------------------------------------------------------------------
 def get_user_by_username(username):
-    """Retrieve user record by username."""
+    """Retrieve user record by username (case-insensitive, trimmed)."""
+    if not username:
+        return None
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    user = conn.execute('SELECT * FROM users WHERE username = ? COLLATE NOCASE', (username.strip(),)).fetchone()
+    conn.close()
+    return user
+
+def get_user_by_email(email):
+    """Retrieve user record by email (case-insensitive, trimmed)."""
+    if not email:
+        return None
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE email = ? COLLATE NOCASE', (email.strip(),)).fetchone()
     conn.close()
     return user
 
@@ -327,21 +363,184 @@ def get_user_by_id(user_id):
     conn.close()
     return user
 
+def check_username_available(username):
+    """Check if a username is available (case-insensitive). Returns True if free."""
+    if not username or not username.strip():
+        return False
+    return get_user_by_username(username) is None
+
+def check_email_available(email):
+    """Check if an email is available (case-insensitive). Returns True if free."""
+    if not email or not email.strip():
+        return False
+    return get_user_by_email(email) is None
+
 def create_user(username, password, full_name, email, role='user'):
-    """Create a new user with hashed password."""
+    """Create a new user with hashed password after enforcing case-insensitive uniqueness."""
+    norm_username = (username or '').strip()
+    norm_email = (email or '').strip().lower()
+    norm_name = (full_name or '').strip()
+    if not norm_username or not password or not norm_email:
+        return None
     conn = get_db_connection()
     hashed = generate_password_hash(password)
     try:
         cursor = conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            (username, hashed, full_name, email, role)
+            (norm_username, hashed, norm_name, norm_email, role)
         )
         conn.commit()
         new_id = cursor.lastrowid
         return new_id
     except sqlite3.IntegrityError:
         return None
+    finally:
+        conn.close()
+
+# --------------------------------------------------------------------------
+# Email OTP Verification Operations
+# --------------------------------------------------------------------------
+def _hash_otp(otp: str, salt: str) -> str:
+    """Compute deterministic SHA-256 hash for OTP with per-code salt."""
+    return hashlib.sha256((salt + otp).encode('utf-8')).hexdigest()
+
+def get_last_otp_sent_time(email: str, purpose: str = 'registration'):
+    """Return datetime when the last OTP was generated for this email/purpose, or None."""
+    norm_email = (email or '').strip().lower()
+    conn = get_db_connection()
+    row = conn.execute(
+        '''SELECT created_at FROM email_otps
+           WHERE email = ? AND purpose = ?
+           ORDER BY id DESC LIMIT 1''',
+        (norm_email, purpose)
+    ).fetchone()
+    conn.close()
+    if not row or not row['created_at']:
+        return None
+    try:
+        return datetime.strptime(row['created_at'], '%Y-%m-%d %H:%M:%S')
+    except Exception:
+        try:
+            return datetime.fromisoformat(row['created_at'])
+        except Exception:
+            return None
+
+def store_email_otp(email: str, otp: str, purpose: str = 'registration', expires_in_seconds: int = 300) -> bool:
+    """
+    Store securely hashed OTP with salt, purpose, and expiration timestamp.
+    Invalidates previous pending unverified OTPs for this email and purpose.
+    """
+    norm_email = (email or '').strip().lower()
+    salt = secrets.token_hex(16)
+    otp_hash = _hash_otp(otp.strip(), salt)
+    expires_at = (datetime.utcnow() + timedelta(seconds=expires_in_seconds)).strftime('%Y-%m-%d %H:%M:%S')
+
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            '''UPDATE email_otps SET verified = -1
+               WHERE email = ? AND purpose = ? AND verified = 0''',
+            (norm_email, purpose)
+        )
+        conn.execute(
+            '''INSERT INTO email_otps (email, otp_hash, salt, purpose, attempts, verified, expires_at)
+               VALUES (?, ?, ?, ?, 0, 0, ?)''',
+            (norm_email, otp_hash, salt, purpose, expires_at)
+        )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+def verify_email_otp(email: str, otp: str, purpose: str = 'registration', max_attempts: int = 5) -> tuple[bool, str, str | None]:
+    """
+    Verify OTP against stored hash for email.
+    Enforces expiration, attempt limits, and single-use verification token generation.
+    Returns: (is_valid: bool, message: str, verification_token: str | None)
+    """
+    norm_email = (email or '').strip().lower()
+    clean_otp = (otp or '').strip()
+
+    if not norm_email or not clean_otp or len(clean_otp) != 6 or not clean_otp.isdigit():
+        return False, "Please enter a valid 6-digit verification code.", None
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            '''SELECT * FROM email_otps
+               WHERE email = ? AND purpose = ? AND verified = 0
+               ORDER BY id DESC LIMIT 1''',
+            (norm_email, purpose)
+        ).fetchone()
+
+        if not row:
+            return False, "No active verification code found. Please request a new code.", None
+
+        try:
+            expires_at = datetime.strptime(row['expires_at'], '%Y-%m-%d %H:%M:%S')
+        except Exception:
+            expires_at = datetime.fromisoformat(row['expires_at'])
+
+        if datetime.utcnow() > expires_at:
+            conn.execute('UPDATE email_otps SET verified = -1 WHERE id = ?', (row['id'],))
+            conn.commit()
+            return False, "Verification code has expired. Please request a new code.", None
+
+        attempts = row['attempts']
+        if attempts >= max_attempts:
+            conn.execute('UPDATE email_otps SET verified = -1 WHERE id = ?', (row['id'],))
+            conn.commit()
+            return False, "Too many failed attempts. This code is locked. Please request a new code.", None
+
+        expected_hash = _hash_otp(clean_otp, row['salt'])
+        if not hmac.compare_digest(expected_hash, row['otp_hash']):
+            new_attempts = attempts + 1
+            remaining = max_attempts - new_attempts
+            if remaining <= 0:
+                conn.execute('UPDATE email_otps SET attempts = ?, verified = -1 WHERE id = ?', (new_attempts, row['id']))
+                conn.commit()
+                return False, "Too many failed attempts. This code is locked. Please request a new code.", None
+            else:
+                conn.execute('UPDATE email_otps SET attempts = ? WHERE id = ?', (new_attempts, row['id']))
+                conn.commit()
+                return False, f"Incorrect verification code. {remaining} attempt(s) remaining.", None
+
+        verification_token = secrets.token_urlsafe(32)
+        conn.execute(
+            '''UPDATE email_otps SET verified = 1, verification_token = ? WHERE id = ?''',
+            (verification_token, row['id'])
+        )
+        conn.commit()
+        return True, "Email verified successfully.", verification_token
+    finally:
+        conn.close()
+
+def consume_verification_token(email: str, token: str, purpose: str = 'registration') -> bool:
+    """
+    Validate and consume single-use verification token upon account creation.
+    Returns True if valid and successfully consumed, False otherwise.
+    """
+    norm_email = (email or '').strip().lower()
+    clean_token = (token or '').strip()
+
+    if not norm_email or not clean_token:
+        return False
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            '''SELECT * FROM email_otps
+               WHERE email = ? AND purpose = ? AND verified = 1 AND verification_token = ?''',
+            (norm_email, purpose, clean_token)
+        ).fetchone()
+
+        if not row:
+            return False
+
+        conn.execute('UPDATE email_otps SET verification_token = NULL WHERE id = ?', (row['id'],))
+        conn.commit()
+        return True
     finally:
         conn.close()
 

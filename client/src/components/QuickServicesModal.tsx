@@ -83,7 +83,7 @@ export const QuickServicesModal: React.FC<QuickServicesModalProps> = ({
                 {type === "pnr" ? "Check PNR Status" : "Live Train Running Status"}
               </h3>
               <p className="text-[11px] text-slate-300">
-                Official RailSim Express Telemetry Network
+                Official RailSecurix Telemetry Network
               </p>
             </div>
           </div>

@@ -26,7 +26,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                 Contact & Support
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Official RailSim Express 24x7 Customer Assistance
+                Official RailSecurix 24x7 Customer Assistance
               </p>
             </div>
           </div>
@@ -74,10 +74,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
                 E-Ticketing & Customer Care
               </span>
               <a
-                href="mailto:customercare@railsim.express"
+                href="mailto:customercare@railsecurix.com"
                 className="text-sm font-extrabold text-blue-700 dark:text-blue-400 hover:underline block mt-0.5"
               >
-                customercare@railsim.express
+                customercare@railsecurix.com
               </a>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 For online booking cancellations, refund queries, and transaction assistance.
@@ -107,7 +107,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
           <div className="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-3">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
             <span>
-              RailSim Express Central Support Centre, State Entry Road, New Delhi - 110001
+              RailSecurix Central Support Centre, State Entry Road, New Delhi - 110001
             </span>
           </div>
         </div>

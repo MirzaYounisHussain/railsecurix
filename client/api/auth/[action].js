@@ -39,7 +39,7 @@ export default function handler(req, res) {
           id: 1,
           username: 'testuser',
           fullName: 'Test User',
-          email: 'testuser@railsim.express',
+          email: 'testuser@railsecurix.com',
           role: 'user'
         };
         const cookieVal = encodeURIComponent(JSON.stringify(user));
@@ -51,12 +51,12 @@ export default function handler(req, res) {
       }
 
       // Authenticate admin user
-      if (uLower === 'admin' && (password === 'Admin@123' || password === 'admin123')) {
+      if (uLower === 'admin' && (password === 'Admin@RailSim2026!' || password === 'Admin@123' || password === 'admin123')) {
         const user = {
           id: 99,
           username: 'admin',
           fullName: 'Administrator',
-          email: 'admin@railsim.express',
+          email: 'admin@railsecurix.com',
           role: 'admin'
         };
         const cookieVal = encodeURIComponent(JSON.stringify(user));

@@ -9,14 +9,14 @@ def test_api_health(client):
     assert response.status_code == 200
     data = response.get_json()
     assert data['status'] == 'healthy'
-    assert 'RailSim Express' in data['service']
+    assert 'RailSecurix' in data['service']
 
 def test_index_page(client):
     """Verify home page loads and displays branding."""
     response = client.get('/')
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert 'RailSim Express' in html
+    assert 'RailSecurix' in html
     assert 'Book Train Ticket' in html
     assert 'Railway Ticket Reservation' in html
 

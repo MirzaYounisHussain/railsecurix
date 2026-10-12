@@ -40,7 +40,7 @@ export const generateTicketPDF = (ticketData: TicketData): boolean => {
     pdf.setFontSize(24);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(15, 46, 90); // Deep Railway Navy
-    pdf.text("RAILSIM EXPRESS", pageWidth / 2, yPosition, { align: "center" });
+    pdf.text("RAILSECURIX", pageWidth / 2, yPosition, { align: "center" });
 
     yPosition += 6;
     pdf.setFontSize(10);
@@ -174,7 +174,7 @@ export const generateTicketPDF = (ticketData: TicketData): boolean => {
     pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(50, 50, 50);
-    pdf.text("This booking was secured via RailSim Express multi-signal behavioral bot-detection.", 20, yPosition + 6);
+    pdf.text("This booking was secured via RailSecurix multi-signal behavioral bot-detection.", 20, yPosition + 6);
     pdf.text("Validated transaction without automated scripting. Authentic passenger ID required during journey.", 20, yPosition + 11);
 
     // Footer
@@ -182,7 +182,7 @@ export const generateTicketPDF = (ticketData: TicketData): boolean => {
     pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(150, 150, 150);
-    pdf.text("RailSim Express • Secure Booking. Smarter Protection. • Computer-generated electronic ticket.", pageWidth / 2, yPosition, {
+    pdf.text("RailSecurix • Secure Booking. Smarter Protection. • Computer-generated electronic ticket.", pageWidth / 2, yPosition, {
       align: "center",
     });
 
@@ -196,12 +196,12 @@ export const generateTicketPDF = (ticketData: TicketData): boolean => {
 };
 
 export const shareTicketWhatsApp = (ticketData: TicketData): string => {
-  return `*RailSim Express E-Ticket*\n\nPNR: *${ticketData.PNR}*\nTrain: ${ticketData.trainName} (${ticketData.trainNumber})\nRoute: ${ticketData.source} -> ${ticketData.destination}\nDate: ${ticketData.travelDate}\nSeat: ${ticketData.seatNumber} (${ticketData.coach})\nFare: Rs. ${ticketData.totalPrice}\n\nBook securely on RailSim Express!`;
+  return `*RailSecurix E-Ticket*\n\nPNR: *${ticketData.PNR}*\nTrain: ${ticketData.trainName} (${ticketData.trainNumber})\nRoute: ${ticketData.source} -> ${ticketData.destination}\nDate: ${ticketData.travelDate}\nSeat: ${ticketData.seatNumber} (${ticketData.coach})\nFare: Rs. ${ticketData.totalPrice}\n\nBook securely on RailSecurix!`;
 };
 
 export const shareTicketEmail = (ticketData: TicketData) => {
-  const subject = `RailSim Express E-Ticket - PNR ${ticketData.PNR}`;
-  const body = `Dear ${ticketData.passengerName},\n\nYour RailSim Express reservation is confirmed.\n\nPNR: ${ticketData.PNR}\nTrain: ${ticketData.trainName} (${ticketData.trainNumber})\nRoute: ${ticketData.source} -> ${ticketData.destination}\nDate: ${ticketData.travelDate}\nSeat: ${ticketData.seatNumber} (${ticketData.coach})\nTotal Fare: Rs. ${ticketData.totalPrice}\n\nSafe travels!\nRailSim Express Team`;
+  const subject = `RailSecurix E-Ticket - PNR ${ticketData.PNR}`;
+  const body = `Dear ${ticketData.passengerName},\n\nYour RailSecurix reservation is confirmed.\n\nPNR: ${ticketData.PNR}\nTrain: ${ticketData.trainName} (${ticketData.trainNumber})\nRoute: ${ticketData.source} -> ${ticketData.destination}\nDate: ${ticketData.travelDate}\nSeat: ${ticketData.seatNumber} (${ticketData.coach})\nTotal Fare: Rs. ${ticketData.totalPrice}\n\nSafe travels!\nRailSecurix Team`;
 
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 };

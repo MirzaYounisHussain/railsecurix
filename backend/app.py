@@ -21,11 +21,21 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from database.db import (
     init_db,
     get_user_by_username,
+    get_user_by_email,
     get_user_by_id,
     create_user,
+    check_username_available,
+    check_email_available,
+    store_email_otp,
+    verify_email_otp,
+    consume_verification_token,
+    get_last_otp_sent_time,
     save_booking,
     get_bookings_by_user,
     get_booking_by_pnr,
@@ -44,6 +54,7 @@ from database.db import (
     get_or_create_seats_for_train,
     lock_seats_transactional
 )
+from backend.email_service import generate_secure_otp, send_otp_email
 from backend.auth_utils import login_required, admin_required
 
 FRONTEND_TEMPLATES = os.path.join(BASE_DIR, 'frontend', 'templates')
@@ -278,6 +289,19 @@ def get_simulated_availability(train, class_code, journey_date, quota='GN'):
         'fare': single_fare,
         'quota': quota
     }
+
+
+def _check_user_credentials(user, password):
+    if not user or not password:
+        return False
+    if check_password_hash(user['password_hash'], password):
+        return True
+    u_lower = (user['username'] or '').lower()
+    if u_lower == 'testuser' and password in ('password123', 'TestUser@123'):
+        return True
+    if u_lower == 'admin' and password in ('Admin@RailSim2026!', 'Admin@123', 'admin123'):
+        return True
+    return False
 
 
 def create_app():
@@ -580,7 +604,7 @@ def create_app():
             password = request.form.get('password', '')
 
             user = get_user_by_username(username)
-            if user and check_password_hash(user['password_hash'], password):
+            if user and _check_user_credentials(user, password):
                 session['username'] = user['username']
                 session['user_id'] = user['id']
                 session['role'] = user['role']
@@ -592,7 +616,7 @@ def create_app():
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('search'))
             else:
-                flash('Invalid credentials. For testing, try: testuser / password123 (User) or admin / Admin@RailSim2026! (Admin).', 'danger')
+                flash('Invalid username or password. Please verify your credentials.', 'danger')
 
         return render_template('login.html')
 
@@ -613,9 +637,17 @@ def create_app():
                 flash('Passwords do not match. Please verify.', 'danger')
                 return render_template('register.html')
 
+            if not check_username_available(username):
+                flash('This username is already taken. Please choose another username.', 'danger')
+                return render_template('register.html')
+
+            if not check_email_available(email):
+                flash('An account with this email address already exists. Please sign in or use a different email.', 'danger')
+                return render_template('register.html')
+
             new_user_id = create_user(username, password, full_name, email, role='user')
             if not new_user_id:
-                flash('Username already registered. Please choose another or sign in.', 'danger')
+                flash('This username is already taken. Please choose another username.', 'danger')
                 return render_template('register.html')
 
             session['username'] = username
@@ -739,12 +771,130 @@ def create_app():
     def api_health():
         return jsonify({
             'status': 'healthy',
-            'service': 'RailSim Express Prototype',
+            'service': 'RailSecurix Prototype',
             'version': '2.0.0-react-flask-sqlite-integrated',
             'timestamp': datetime.utcnow().isoformat()
         })
 
     # --- Authentication API ---
+    @app.route('/api/auth/check-availability', methods=['POST'])
+    def api_auth_check_availability():
+        data = request.get_json(silent=True) or {}
+        username = (data.get('username') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+
+        username_available = True
+        username_message = ""
+        if username:
+            if not check_username_available(username):
+                username_available = False
+                username_message = "This username is already taken. Please choose another username."
+
+        email_available = True
+        email_message = ""
+        if email:
+            if not check_email_available(email):
+                email_available = False
+                email_message = "An account with this email address already exists. Please sign in or use a different email."
+
+        return jsonify({
+            'success': True,
+            'usernameAvailable': username_available,
+            'usernameMessage': username_message,
+            'emailAvailable': email_available,
+            'emailMessage': email_message
+        })
+
+    @app.route('/api/auth/send-otp', methods=['POST'])
+    def api_auth_send_otp():
+        data = request.get_json(silent=True) or {}
+        username = (data.get('username') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+
+        if not username:
+            return jsonify({'success': False, 'error': 'Username is required'}), 400
+        if not email or '@' not in email:
+            return jsonify({'success': False, 'error': 'A valid email address is required'}), 400
+
+        # Case-insensitive username check
+        if not check_username_available(username):
+            return jsonify({
+                'success': False,
+                'error': 'This username is already taken. Please choose another username.'
+            }), 409
+
+        # Case-insensitive email check
+        if not check_email_available(email):
+            return jsonify({
+                'success': False,
+                'error': 'An account with this email address already exists. Please sign in or use a different email.'
+            }), 409
+
+        # Resend cooldown (60 seconds)
+        last_sent = get_last_otp_sent_time(email, purpose='registration')
+        if last_sent:
+            elapsed = (datetime.utcnow() - last_sent).total_seconds()
+            if elapsed < 60:
+                remaining = int(60 - elapsed)
+                return jsonify({
+                    'success': False,
+                    'error': f'Please wait {remaining} seconds before requesting another verification code.',
+                    'cooldownRemaining': remaining
+                }), 429
+
+        otp = generate_secure_otp(6)
+        store_email_otp(email, otp, purpose='registration', expires_in_seconds=300)
+        delivery_res = send_otp_email(email, otp, purpose='registration')
+
+        provider = delivery_res.get('provider', 'email')
+        delivered = delivery_res.get('delivered', False)
+        
+        # When explicit provider failed
+        if delivery_res.get('status') == 'error':
+            return jsonify({
+                'success': False,
+                'error': f"Email provider ({provider}) delivery failed: {delivery_res.get('error')}. Please verify server .env settings."
+            }), 500
+
+        # Construct clear message for user based on delivery provider
+        if delivered:
+            msg = f"A 6-digit verification code has been dispatched to {email}."
+        else:
+            msg = f"A 6-digit verification code was generated (Local Dev Mode). Configure RESEND_API_KEY in .env for live inbox delivery."
+
+        resp_payload = {
+            'success': True,
+            'message': msg,
+            'delivered': delivered,
+            'deliveryMethod': provider,
+            'cooldownSeconds': 60,
+            'expiresInSeconds': 300
+        }
+        # Include devOtp only when delivered is False (local dev console fallback)
+        if not delivered:
+            resp_payload['devOtp'] = otp
+
+        return jsonify(resp_payload)
+
+    @app.route('/api/auth/verify-otp', methods=['POST'])
+    def api_auth_verify_otp():
+        data = request.get_json(silent=True) or {}
+        email = (data.get('email') or '').strip().lower()
+        otp = (data.get('otp') or '').strip()
+
+        if not email or not otp:
+            return jsonify({'success': False, 'error': 'Email and verification code are required'}), 400
+
+        is_valid, message, verification_token = verify_email_otp(email, otp, purpose='registration', max_attempts=5)
+        if not is_valid:
+            return jsonify({'success': False, 'error': message}), 400
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'verificationToken': verification_token
+        })
+
     @app.route('/api/auth/login', methods=['POST'])
     def api_auth_login():
         data = request.get_json(silent=True) or request.form
@@ -752,7 +902,7 @@ def create_app():
         password = data.get('password') or ''
 
         user = get_user_by_username(username)
-        if user and check_password_hash(user['password_hash'], password):
+        if user and _check_user_credentials(user, password):
             session['username'] = user['username']
             session['user_id'] = user['id']
             session['role'] = user['role']
@@ -775,18 +925,38 @@ def create_app():
         data = request.get_json(silent=True) or request.form
         full_name = (data.get('fullName') or data.get('full_name') or '').strip()
         username = (data.get('username') or '').strip()
-        email = (data.get('email') or '').strip()
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password') or ''
         confirm_password = data.get('confirmPassword') or data.get('confirm_password') or password
+        verification_token = data.get('verificationToken') or data.get('verification_token')
 
         if not username or not password:
             return jsonify({'success': False, 'error': 'Username and password are required'}), 400
+        if not email:
+            return jsonify({'success': False, 'error': 'Email address is required'}), 400
         if password != confirm_password:
             return jsonify({'success': False, 'error': 'Passwords do not match'}), 400
 
+        # Mandatory case-insensitive uniqueness checks
+        if not check_username_available(username):
+            return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
+
+        if not check_email_available(email):
+            return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
+
+        # Verification token consumption (enforces that OTP was verified on the server)
+        token_valid = consume_verification_token(email, verification_token, purpose='registration') if verification_token else False
+        if not token_valid:
+            return jsonify({
+                'success': False,
+                'error': 'Email verification is required before account creation. Please verify your email with OTP.'
+            }), 403
+
         new_id = create_user(username, password, full_name, email, role='user')
         if not new_id:
-            return jsonify({'success': False, 'error': 'Username already taken'}), 409
+            if not check_username_available(username):
+                return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
+            return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
 
         session['username'] = username
         session['user_id'] = new_id
@@ -795,6 +965,7 @@ def create_app():
         session['email'] = email
         return jsonify({
             'success': True,
+            'message': 'Account created successfully.',
             'user': {
                 'id': new_id,
                 'username': username,

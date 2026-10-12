@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% set active_page = "login" %}
 
-{% block title %}RailSim Express - Sign In{% endblock %}
+{% block title %}RailSecurix - Sign In{% endblock %}
 
 {% block content %}
 <div class="container-narrow" style="max-width: 480px; margin-top: 2rem;">
     <div class="card">
         <div class="card-header" style="text-align: center; display: block; border-bottom: none; padding-bottom: 0;">
             <div class="brand-badge" style="margin: 0 auto 0.75rem; width: 44px; height: 44px; font-size: 1.4rem;">R</div>
-            <h1 class="card-title" style="font-size: 1.4rem;">Sign In to RailSim Express</h1>
+            <h1 class="card-title" style="font-size: 1.4rem;">Sign In to RailSecurix</h1>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
                 Enter your traveler or administrative credentials to access your account.
             </p>
@@ -29,12 +29,6 @@
                 Sign In &rarr;
             </button>
         </form>
-
-        <div style="background: #f9fafb; border: 1px dashed var(--railway-border); border-radius: var(--radius-sm); padding: 0.75rem; margin-top: 1.25rem; font-size: 0.8rem; color: var(--text-secondary);">
-            <strong>Pre-configured Demo Accounts:</strong><br>
-            &bull; <strong>Traveler:</strong> <code>testuser</code> / <code>password123</code><br>
-            &bull; <strong>Administrator:</strong> <code>admin</code> / <code>Admin@RailSim2026!</code>
-        </div>
 
         <div style="text-align: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-muted);">
             Don't have an account yet? <a href="{{ url_for('register') }}" style="color: var(--railway-blue); font-weight: 600;">Register here</a>

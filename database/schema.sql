@@ -112,3 +112,24 @@ CREATE INDEX IF NOT EXISTS idx_passengers_booking ON passengers(booking_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON active_sessions(session_token);
 CREATE INDEX IF NOT EXISTS idx_seats_lookup ON seats(train_id, travel_date, class_code);
 CREATE INDEX IF NOT EXISTS idx_stations_code ON stations(code);
+
+-- Case-insensitive uniqueness constraints for user accounts
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase ON users(username COLLATE NOCASE);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users(email COLLATE NOCASE);
+
+-- Secure Email OTP verification store
+CREATE TABLE IF NOT EXISTS email_otps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    otp_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    purpose TEXT NOT NULL DEFAULT 'registration',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    verified INTEGER NOT NULL DEFAULT 0,
+    verification_token TEXT,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_otps_lookup ON email_otps(email, purpose, verified);
+CREATE INDEX IF NOT EXISTS idx_email_otps_token ON email_otps(verification_token);

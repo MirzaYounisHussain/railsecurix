@@ -42,7 +42,7 @@ export const Navbar: React.FC = () => {
       <header className="sticky top-0 z-40 w-full bg-[#0b2144] text-white shadow-md border-b border-[#143261]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-18 py-2.5">
-            {/* Left: Original RailSim Express Branding */}
+            {/* Left: Original RailSecurix Branding */}
             <Link to="/" className="flex items-center space-x-3 group">
               <div className="h-11 w-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner group-hover:scale-105 transition">
                 <Train className="w-6 h-6 text-orange-400" />
@@ -50,7 +50,7 @@ export const Navbar: React.FC = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                    RailSim<span className="text-orange-400">.</span>Express
+                    RailSecurix
                   </span>
                   <span className="bg-blue-900 text-sky-200 border border-sky-400/30 text-[9px] font-black px-1.5 py-0.5 rounded tracking-widest uppercase">
                     BETA
@@ -206,7 +206,7 @@ export const Navbar: React.FC = () => {
                   }}
                   className="w-full bg-white text-[#0b2144] font-black py-2.5 rounded-full text-center"
                 >
-                  SIGN IN TO RAILSIM EXPRESS
+                  SIGN IN TO RAILSECURIX
                 </button>
               </div>
             )}

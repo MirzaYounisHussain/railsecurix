@@ -9,7 +9,7 @@ const Footer = () => (
             <Train className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-base font-bold text-foreground">RailSim Express</span>
+            <span className="text-base font-bold text-foreground">RailSecurix</span>
             <p className="text-xs text-muted-foreground">Secure Booking. Smarter Protection.</p>
           </div>
         </div>
@@ -20,7 +20,7 @@ const Footer = () => (
         </div>
 
         <p className="text-xs text-muted-foreground text-center md:text-right">
-          © {new Date().getFullYear()} RailSim Express. Local Cybersecurity Research Simulation.
+          © {new Date().getFullYear()} RailSecurix. Local Cybersecurity Research Simulation.
         </p>
       </div>
     </div>
