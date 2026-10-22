@@ -19,9 +19,10 @@ const Footer = () => (
           <span>Multi-Signal Behavioral Bot Detection & Adaptive Cybersecurity</span>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center md:text-right">
-          © {new Date().getFullYear()} RailSecurix. Local Cybersecurity Research Simulation.
-        </p>
+        <div className="text-xs text-muted-foreground text-center md:text-right space-y-1">
+          <p className="font-semibold text-foreground">© 2025A7R017 | © 2025A7R004</p>
+          <p>Part of: MDC Project — CSE Cybersecurity Batch 2025</p>
+        </div>
       </div>
     </div>
   </footer>
