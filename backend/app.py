@@ -296,6 +296,15 @@ def _check_user_credentials(user, password):
         return False
     if check_password_hash(user['password_hash'], password):
         return True
+    # In production environments, never permit hardcoded fallback credentials
+    is_prod = bool(
+        os.environ.get('RAILWAY_ENVIRONMENT')
+        or os.environ.get('IS_PRODUCTION')
+        or (os.environ.get('FRONTEND_URL') and 'localhost' not in os.environ.get('FRONTEND_URL'))
+    )
+    if is_prod:
+        return False
+
     u_lower = (user['username'] or '').lower()
     if u_lower == 'testuser' and password in ('password123', 'TestUser@123'):
         return True

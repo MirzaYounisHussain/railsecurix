@@ -281,6 +281,27 @@ def run_migrations(conn):
 
     conn.commit()
 
+def _get_initial_admin_password():
+    """
+    Retrieve initial password for seeding the administrator account.
+    In production environments (Railway / external URL), requires ADMIN_INITIAL_PASSWORD
+    or ADMIN_PASSWORD to be explicitly configured. Falls back to academic test credentials
+    only in local development.
+    """
+    admin_pass = (os.environ.get('ADMIN_INITIAL_PASSWORD') or os.environ.get('ADMIN_PASSWORD') or '').strip()
+    is_production = bool(
+        os.environ.get('RAILWAY_ENVIRONMENT')
+        or os.environ.get('IS_PRODUCTION')
+        or (os.environ.get('FRONTEND_URL') and 'localhost' not in os.environ.get('FRONTEND_URL'))
+    )
+    if is_production and not admin_pass:
+        raise RuntimeError(
+            "Production startup halted: A fresh production database was detected, but ADMIN_INITIAL_PASSWORD "
+            "(or ADMIN_PASSWORD) is not set in environment variables. Set a strong initial password in your "
+            "hosting environment variables to bootstrap the administrator account securely."
+        )
+    return admin_pass if admin_pass else 'Admin@RailSim2026!'
+
 def init_db():
     """Initialize schema and seed initial administrative, standard test users, stations, and trains."""
     conn = get_db_connection()
@@ -306,7 +327,7 @@ def init_db():
         conn.execute(
             '''INSERT INTO users (username, password_hash, full_name, email, role)
                VALUES (?, ?, ?, ?, ?)''',
-            ('admin', generate_password_hash('Admin@RailSim2026!'), 'Security Administrator', 'security-admin@railsim.local', 'admin')
+            ('admin', generate_password_hash(_get_initial_admin_password()), 'Security Administrator', 'security-admin@railsim.local', 'admin')
         )
 
     # Seed Default Stations
