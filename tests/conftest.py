@@ -11,6 +11,19 @@ import tempfile
 # Add project root to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+@pytest.fixture(autouse=True)
+def mock_external_email(monkeypatch):
+    """Ensure automated tests never make live network calls to third-party email providers."""
+    from backend import email_service
+    def mock_brevo(api_key, to_email, otp, purpose):
+        return {
+            "delivered": True,
+            "provider": "brevo",
+            "messageId": "mock-test-message-id",
+            "status": "sent"
+        }
+    monkeypatch.setattr(email_service, '_send_via_brevo', mock_brevo)
+
 @pytest.fixture
 def app():
     """Create and configure an isolated test Flask application."""

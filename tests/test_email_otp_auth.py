@@ -221,3 +221,22 @@ def test_08_admin_routes_remain_secure_and_protected(client):
     client.post('/api/auth/login', json={'username': 'admin', 'password': 'Admin@RailSim2026!'})
     assert client.get('/api/admin/dashboard').status_code == 200
     client.post('/api/auth/logout')
+
+def test_09_resend_otp_handles_either_valid_unexpired_code(app):
+    """Confirm that if a user requests resend, either unexpired code can be verified without race conditions."""
+    test_email = "resend_test@example.com"
+    # Store first OTP
+    store_email_otp(test_email, "111222", purpose="registration", expires_in_seconds=300)
+    # Store second OTP (simulating resend after delay)
+    store_email_otp(test_email, "333444", purpose="registration", expires_in_seconds=300)
+
+    # First OTP should still verify successfully even though second OTP was also sent
+    ok, msg, token = verify_email_otp(test_email, "111222", purpose="registration")
+    assert ok is True
+    assert token is not None
+
+    # Now that registration OTP was consumed, second code cannot be reused
+    ok2, msg2, token2 = verify_email_otp(test_email, "333444", purpose="registration")
+    assert ok2 is False
+    assert token2 is None
+

@@ -450,19 +450,22 @@ def get_last_otp_sent_time(email: str, purpose: str = 'registration'):
 def store_email_otp(email: str, otp: str, purpose: str = 'registration', expires_in_seconds: int = 300) -> bool:
     """
     Store securely hashed OTP with salt, purpose, and expiration timestamp.
-    Invalidates previous pending unverified OTPs for this email and purpose.
+    Clean up expired unverified OTPs for this email and purpose while keeping
+    active unexpired OTPs valid until verified or expired.
     """
     norm_email = (email or '').strip().lower()
     salt = secrets.token_hex(16)
     otp_hash = _hash_otp(otp.strip(), salt)
+    now_str = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     expires_at = (datetime.utcnow() + timedelta(seconds=expires_in_seconds)).strftime('%Y-%m-%d %H:%M:%S')
 
     conn = get_db_connection()
     try:
+        # Expire any already-expired unverified OTPs for this email
         conn.execute(
             '''UPDATE email_otps SET verified = -1
-               WHERE email = ? AND purpose = ? AND verified = 0''',
-            (norm_email, purpose)
+               WHERE email = ? AND purpose = ? AND verified = 0 AND expires_at < ?''',
+            (norm_email, purpose, now_str)
         )
         conn.execute(
             '''INSERT INTO email_otps (email, otp_hash, salt, purpose, attempts, verified, expires_at)
@@ -477,6 +480,7 @@ def store_email_otp(email: str, otp: str, purpose: str = 'registration', expires
 def verify_email_otp(email: str, otp: str, purpose: str = 'registration', max_attempts: int = 5) -> tuple[bool, str, str | None]:
     """
     Verify OTP against stored hash for email.
+    Checks any active unexpired OTP issued for this email/purpose.
     Enforces expiration, attempt limits, and single-use verification token generation.
     Returns: (is_valid: bool, message: str, verification_token: str | None)
     """
@@ -488,52 +492,70 @@ def verify_email_otp(email: str, otp: str, purpose: str = 'registration', max_at
 
     conn = get_db_connection()
     try:
-        row = conn.execute(
+        rows = conn.execute(
             '''SELECT * FROM email_otps
                WHERE email = ? AND purpose = ? AND verified = 0
-               ORDER BY id DESC LIMIT 1''',
+               ORDER BY id DESC''',
             (norm_email, purpose)
-        ).fetchone()
+        ).fetchall()
 
-        if not row:
+        if not rows:
             return False, "No active verification code found. Please request a new code.", None
 
-        try:
-            expires_at = datetime.strptime(row['expires_at'], '%Y-%m-%d %H:%M:%S')
-        except Exception:
-            expires_at = datetime.fromisoformat(row['expires_at'])
+        now = datetime.utcnow()
+        matched_row = None
+        valid_rows = []
 
-        if datetime.utcnow() > expires_at:
-            conn.execute('UPDATE email_otps SET verified = -1 WHERE id = ?', (row['id'],))
+        for row in rows:
+            try:
+                expires_at = datetime.strptime(row['expires_at'], '%Y-%m-%d %H:%M:%S')
+            except Exception:
+                expires_at = datetime.fromisoformat(row['expires_at'])
+
+            if now > expires_at or row['attempts'] >= max_attempts:
+                conn.execute('UPDATE email_otps SET verified = -1 WHERE id = ?', (row['id'],))
+                continue
+
+            valid_rows.append(row)
+            expected_hash = _hash_otp(clean_otp, row['salt'])
+            if hmac.compare_digest(expected_hash, row['otp_hash']):
+                matched_row = row
+                break
+
+        if matched_row:
+            verification_token = secrets.token_urlsafe(32)
+            # Mark the matching OTP row as successfully verified
+            conn.execute(
+                '''UPDATE email_otps SET verified = 1, verification_token = ? WHERE id = ?''',
+                (verification_token, matched_row['id'])
+            )
+            # Invalidate all other pending OTPs for this email and purpose
+            conn.execute(
+                '''UPDATE email_otps SET verified = -1 WHERE email = ? AND purpose = ? AND verified = 0''',
+                (norm_email, purpose)
+            )
+            conn.commit()
+            return True, "Email verified successfully.", verification_token
+
+        if not valid_rows:
             conn.commit()
             return False, "Verification code has expired. Please request a new code.", None
 
-        attempts = row['attempts']
-        if attempts >= max_attempts:
-            conn.execute('UPDATE email_otps SET verified = -1 WHERE id = ?', (row['id'],))
+        # None matched - increment attempts on the most recent valid OTP
+        most_recent = valid_rows[0]
+        new_attempts = most_recent['attempts'] + 1
+        remaining = max_attempts - new_attempts
+        if remaining <= 0:
+            conn.execute(
+                '''UPDATE email_otps SET attempts = ?, verified = -1 WHERE email = ? AND purpose = ? AND verified = 0''',
+                (new_attempts, norm_email, purpose)
+            )
             conn.commit()
             return False, "Too many failed attempts. This code is locked. Please request a new code.", None
-
-        expected_hash = _hash_otp(clean_otp, row['salt'])
-        if not hmac.compare_digest(expected_hash, row['otp_hash']):
-            new_attempts = attempts + 1
-            remaining = max_attempts - new_attempts
-            if remaining <= 0:
-                conn.execute('UPDATE email_otps SET attempts = ?, verified = -1 WHERE id = ?', (new_attempts, row['id']))
-                conn.commit()
-                return False, "Too many failed attempts. This code is locked. Please request a new code.", None
-            else:
-                conn.execute('UPDATE email_otps SET attempts = ? WHERE id = ?', (new_attempts, row['id']))
-                conn.commit()
-                return False, f"Incorrect verification code. {remaining} attempt(s) remaining.", None
-
-        verification_token = secrets.token_urlsafe(32)
-        conn.execute(
-            '''UPDATE email_otps SET verified = 1, verification_token = ? WHERE id = ?''',
-            (verification_token, row['id'])
-        )
-        conn.commit()
-        return True, "Email verified successfully.", verification_token
+        else:
+            conn.execute('UPDATE email_otps SET attempts = ? WHERE id = ?', (new_attempts, most_recent['id']))
+            conn.commit()
+            return False, f"Incorrect verification code. {remaining} attempt(s) remaining.", None
     finally:
         conn.close()
 

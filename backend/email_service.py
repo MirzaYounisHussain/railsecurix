@@ -128,8 +128,16 @@ def _send_via_resend(api_key: str, to_email: str, otp: str, purpose: str) -> dic
 def _send_via_brevo(api_key: str, to_email: str, otp: str, purpose: str) -> dict:
     """Send transactional email using Brevo (Sendinblue) v3 API."""
     url = "https://api.brevo.com/v3/smtp/email"
-    sender_email = os.environ.get("BREVO_FROM_EMAIL", "noreply@railsim.express")
-    sender_name = os.environ.get("BREVO_FROM_NAME", "RailSecurix")
+    sender_email = (
+        os.environ.get("BREVO_SENDER_EMAIL")
+        or os.environ.get("BREVO_FROM_EMAIL")
+        or "noreply@railsecurix.com"
+    ).strip()
+    sender_name = (
+        os.environ.get("BREVO_SENDER_NAME")
+        or os.environ.get("BREVO_FROM_NAME")
+        or "Railsecurix"
+    ).strip()
     plain_text, html_content = get_email_template(otp, purpose)
     
     payload = {
@@ -206,36 +214,36 @@ def _send_via_smtp(to_email: str, otp: str, purpose: str) -> dict:
 def send_otp_email(to_email: str, otp: str, purpose: str = "registration") -> dict:
     """
     Authoritative email delivery dispatcher.
-    Checks environment for Resend, Brevo, or SMTP configuration.
+    Checks environment for Brevo, Resend, or SMTP configuration.
     Falls back safely to development server logging if no credentials are configured.
     """
     normalized_email = to_email.strip().lower()
 
-    # 1. Check Resend API
-    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
-    if resend_key:
-        try:
-            return _send_via_resend(resend_key, normalized_email, otp, purpose)
-        except Exception as e:
-            logger.warning("Resend delivery failed (%s). Falling back.", e)
-            # If explicit credentials fail, report error rather than silent dev fallback
-            return {
-                "delivered": False,
-                "provider": "resend",
-                "error": str(e),
-                "status": "error"
-            }
-
-    # 2. Check Brevo API
+    # 1. Check Brevo API (Primary transactional provider)
     brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
     if brevo_key:
         try:
             return _send_via_brevo(brevo_key, normalized_email, otp, purpose)
         except Exception as e:
-            logger.warning("Brevo delivery failed (%s). Falling back.", e)
+            logger.warning("Brevo delivery failed (%s).", e)
             return {
                 "delivered": False,
                 "provider": "brevo",
+                "error": str(e),
+                "status": "error"
+            }
+
+    # 2. Check Resend API
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    if resend_key:
+        try:
+            return _send_via_resend(resend_key, normalized_email, otp, purpose)
+        except Exception as e:
+            logger.warning("Resend delivery failed (%s).", e)
+            # If explicit credentials fail, report error rather than silent dev fallback
+            return {
+                "delivered": False,
+                "provider": "resend",
                 "error": str(e),
                 "status": "error"
             }
@@ -254,7 +262,22 @@ def send_otp_email(to_email: str, otp: str, purpose: str = "registration") -> di
                 "status": "error"
             }
 
-    # 4. Development mode fallback when no keys are in environment
+    # 4. Check for production environment before console fallback
+    is_prod = bool(
+        os.environ.get('RAILWAY_ENVIRONMENT')
+        or os.environ.get('IS_PRODUCTION')
+        or (os.environ.get('FRONTEND_URL') and 'localhost' not in os.environ.get('FRONTEND_URL'))
+    )
+    if is_prod:
+        logger.error("Production email dispatch halted: No live email provider (Brevo/Resend/SMTP) is configured in environment.")
+        return {
+            "delivered": False,
+            "provider": "none",
+            "status": "unconfigured",
+            "error": "No transactional email provider is configured for production dispatch."
+        }
+
+    # Development mode fallback when no keys are in environment
     print("\n" + "=" * 76, file=sys.stderr)
     print(f"[RailSecurix Email Service - LOCAL DEV LOG]", file=sys.stderr)
     print(f"Recipient: {normalized_email}", file=sys.stderr)

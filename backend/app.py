@@ -14,6 +14,7 @@ from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, abort, send_from_directory
 )
+from flask_cors import CORS
 from werkzeug.security import check_password_hash
 
 # Ensure project root is in sys.path
@@ -324,7 +325,42 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'railsim-cybersecurity-prototype-key-2026')
     app.config['SESSION_COOKIE_NAME'] = 'railsim_session'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    # Configure Trusted CORS Origins & Cross-Site Session Cookies
+    allowed_origins_env = os.environ.get('FRONTEND_URL') or os.environ.get('ALLOWED_ORIGINS', '')
+    trusted_origins = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
+    ]
+    if allowed_origins_env:
+        for origin in allowed_origins_env.split(','):
+            clean_origin = origin.strip().rstrip('/')
+            if clean_origin and clean_origin not in trusted_origins:
+                trusted_origins.append(clean_origin)
+
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": trusted_origins}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Accept", "Authorization", "X-Requested-With"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
+
+    # Cross-site cookie configuration:
+    # Modern browsers require SameSite='None' and Secure=True for cross-site credentialed requests.
+    # In local HTTP development, SameSite='Lax' and Secure=False prevent cookies being rejected over plain HTTP.
+    is_cross_site_prod = bool(
+        (allowed_origins_env and not all('localhost' in o or '127.0.0.1' in o for o in allowed_origins_env.split(',')))
+        or os.environ.get('RAILWAY_ENVIRONMENT')
+        or os.environ.get('SESSION_COOKIE_SECURE', '').lower() in ('true', '1')
+    )
+    if is_cross_site_prod:
+        app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+        app.config['SESSION_COOKIE_SECURE'] = True
+    else:
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        app.config['SESSION_COOKIE_SECURE'] = False
 
     # Initialize SQLite database and seed defaults
     with app.app_context():
@@ -848,7 +884,8 @@ def create_app():
                 return jsonify({
                     'success': False,
                     'error': f'Please wait {remaining} seconds before requesting another verification code.',
-                    'cooldownRemaining': remaining
+                    'cooldownRemaining': remaining,
+                    'hasActiveOtp': True
                 }), 429
 
         otp = generate_secure_otp(6)
@@ -857,8 +894,35 @@ def create_app():
 
         provider = delivery_res.get('provider', 'email')
         delivered = delivery_res.get('delivered', False)
-        
-        # When explicit provider failed
+        status = delivery_res.get('status', '')
+
+        # Production error & delivery handling: strictly forbid devOtp and internal details
+        is_prod = bool(
+            os.environ.get('RAILWAY_ENVIRONMENT')
+            or os.environ.get('IS_PRODUCTION')
+            or (os.environ.get('FRONTEND_URL') and 'localhost' not in os.environ.get('FRONTEND_URL'))
+        )
+        if is_prod:
+            if not delivered or status in ('error', 'unconfigured'):
+                app.logger.error(
+                    "Production OTP delivery failure: provider=%s, status=%s, error=%s",
+                    provider, status, delivery_res.get('error', 'unconfirmed_delivery')
+                )
+                return jsonify({
+                    'success': False,
+                    'error': 'Failed to deliver verification code. Please check your email address or try again later.'
+                }), 502
+
+            return jsonify({
+                'success': True,
+                'message': f"A 6-digit verification code has been dispatched to {email}.",
+                'delivered': True,
+                'deliveryMethod': provider,
+                'cooldownSeconds': 60,
+                'expiresInSeconds': 300
+            })
+
+        # Development / Testing environment handling
         if delivery_res.get('status') == 'error':
             return jsonify({
                 'success': False,
@@ -1469,4 +1533,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
