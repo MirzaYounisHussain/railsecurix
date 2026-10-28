@@ -35,7 +35,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     } else if (response.status === 401) {
       errorMsg = 'Invalid username or password. Please verify your credentials.';
     }
-    throw new Error(String(errorMsg));
+    const err: any = new Error(String(errorMsg));
+    err.status = response.status;
+    err.cooldownRemaining = data.cooldownRemaining;
+    err.hasActiveOtp = data.hasActiveOtp;
+    throw err;
   }
 
   return data as T;
@@ -284,5 +288,17 @@ export const api = {
 
   async getAdminMlStats(): Promise<any> {
     return request('/admin/security/ml-stats');
+  },
+
+  // Supabase Connectivity Diagnostic
+  async getSupabaseStatus(): Promise<{
+    success: boolean;
+    configured: boolean;
+    projectUrl: string;
+    status: string;
+    latencyMs?: number;
+    message: string;
+  }> {
+    return request('/system/supabase-status');
   },
 };

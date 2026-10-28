@@ -5,6 +5,16 @@ import { api } from "@/services/api";
 import { UserPlus, Loader2, MailCheck, CheckCircle2, ArrowLeft, RefreshCw, KeyRound, Shield, Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const COMMON_EMAIL_DOMAIN_TYPOS: Record<string, string> = {
+  "gamil.com": "gmail.com",
+  "gmial.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gmaill.com": "gmail.com",
+  "yaho.com": "yahoo.com",
+  "hotmial.com": "hotmail.com",
+  "outlok.com": "outlook.com",
+};
+
 type RegisterStep = "signup_form" | "otp";
 
 const Register = () => {
@@ -52,6 +62,11 @@ const Register = () => {
       setError("Please enter a valid email address.");
       return;
     }
+    const domain = cleanEmail.split("@")[1];
+    if (domain && COMMON_EMAIL_DOMAIN_TYPOS[domain]) {
+      setError(`Did you mean @${COMMON_EMAIL_DOMAIN_TYPOS[domain]}? Please check your email address spelling to ensure delivery.`);
+      return;
+    }
     if (!password) {
       setError("Please set a password.");
       return;
@@ -69,6 +84,7 @@ const Register = () => {
     setError("");
     setSuccessMsg("");
     setDevOtpCode(null);
+    setOtp("");
 
     try {
       // 1. Check availability
@@ -94,7 +110,13 @@ const Register = () => {
       }
       setStep("otp");
     } catch (err: any) {
-      setError(err.message || "Failed to send verification code. Please check your network and try again.");
+      if (err.hasActiveOtp || (err.cooldownRemaining && err.cooldownRemaining > 0)) {
+        setSuccessMsg("A verification code was recently sent to your email. Please check your inbox and enter the 6-digit code below.");
+        setCooldown(err.cooldownRemaining || 30);
+        setStep("otp");
+      } else {
+        setError(err.message || "Failed to send verification code. Please check your network and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -106,9 +128,10 @@ const Register = () => {
     setLoading(true);
     setError("");
     setSuccessMsg("");
+    setOtp(""); // Clear previous input to avoid submitting stale codes
     try {
       const res = await api.sendOtp(username.trim(), email.trim().toLowerCase());
-      setSuccessMsg(res.message || "New verification code sent to your email.");
+      setSuccessMsg(res.message || "A new 6-digit verification code has been dispatched. Please check your inbox for the latest code.");
       setCooldown(res.cooldownSeconds || 60);
       setDeliveryMethod(res.deliveryMethod || "email");
       if (res.devOtp) {
@@ -328,6 +351,7 @@ const Register = () => {
                     setStep("signup_form");
                     setError("");
                     setSuccessMsg("");
+                    setOtp("");
                   }}
                   className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
                 >
@@ -390,6 +414,7 @@ const Register = () => {
                   setStep("signup_form");
                   setError("");
                   setSuccessMsg("");
+                  setOtp("");
                 }}
                 className="text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
               >
