@@ -223,12 +223,23 @@ export const api = {
     });
   },
 
-  async confirmPayment(payload: { bookingRef?: string; amount?: number; method: string }): Promise<{
+  async confirmPayment(payload: {
+    bookingRef?: string;
+    amount?: number;
+    method: string;
+    isSimulated?: boolean;
+    status?: string;
+  }): Promise<{
     success: boolean;
     transactionId: string;
     status: string;
     gateway: string;
     timestamp: string;
+    bookingStatus?: string;
+    verified?: boolean;
+    isSimulated?: boolean;
+    message?: string;
+    alreadyConfirmed?: boolean;
   }> {
     return request('/bookings/confirm-payment', {
       method: 'POST',

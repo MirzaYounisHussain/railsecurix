@@ -96,6 +96,7 @@ export const Payment: React.FC = () => {
         bookingRef: bookingRes.bookingRef || `REF-${bookingRes.bookingId}`,
         amount: grandTotal,
         method: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
+        isSimulated: true,
       });
 
       const currentUsername = user?.username || "testuser";
