@@ -110,64 +110,56 @@ def test_development_mode_preserves_local_testing_dev_otp(client, monkeypatch):
     assert len(data['devOtp']) == 6
     assert data['devOtp'].isdigit()
 
-def test_registration_strictly_rejected_without_verified_token(client):
-    """Confirm /api/auth/register rejects registration without valid single-use token."""
+def test_registration_allowed_without_otp_token(client):
+    """Confirm /api/auth/register allows registration with username, email, and password under no-OTP policy."""
     res = client.post('/api/auth/register', json={
-        'username': 'unverified_traveler',
-        'fullName': 'Unverified Traveler',
-        'email': 'unverified@example.com',
+        'username': 'direct_traveler_1',
+        'fullName': 'Direct Traveler 1',
+        'email': 'direct1@example.com',
         'password': 'SecurePassword@2026',
         'confirmPassword': 'SecurePassword@2026',
-        # No verificationToken provided
+        # No verificationToken required
     })
-    assert res.status_code == 403
+    assert res.status_code == 201
     data = res.get_json()
-    assert data['success'] is False
-    assert 'Email verification is required' in data['error']
-    assert get_user_by_username('unverified_traveler') is None
+    assert data['success'] is True
+    assert data['user']['username'] == 'direct_traveler_1'
+    assert data['user']['email'] == 'direct1@example.com'
+    assert get_user_by_username('direct_traveler_1') is not None
 
-def test_verification_token_is_single_use(client):
-    """Confirm a verification token cannot be reused to register multiple accounts."""
+def test_registration_enforces_case_insensitive_uniqueness(client):
+    """Confirm registration strictly rejects duplicate username and email (case-insensitive)."""
     email = 'single_use@example.com'
-    otp = '123456'
 
-    store_email_otp(email, otp, purpose='registration')
-    is_valid, msg, token = verify_email_otp(email, otp, purpose='registration')
-    assert is_valid is True
-    assert token is not None
-
-    # First registration with token -> 201 Created
+    # First registration -> 201 Created
     res1 = client.post('/api/auth/register', json={
         'username': 'singleuse_user1',
         'fullName': 'Single Use User',
         'email': email,
         'password': 'Password@12345',
-        'confirmPassword': 'Password@12345',
-        'verificationToken': token
+        'confirmPassword': 'Password@12345'
     })
     assert res1.status_code == 201
     assert res1.get_json()['success'] is True
 
-    # Second registration attempting to reuse the same token with another email -> 403 Forbidden
+    # Duplicate username attempt (case-insensitive) -> 409 Conflict
     res2 = client.post('/api/auth/register', json={
-        'username': 'singleuse_user2',
+        'username': 'SINGLEUSE_USER1',
         'fullName': 'Second Single Use User',
         'email': 'different_email@example.com',
         'password': 'Password@12345',
-        'confirmPassword': 'Password@12345',
-        'verificationToken': token
+        'confirmPassword': 'Password@12345'
     })
-    assert res2.status_code == 403
-    assert 'Email verification is required' in res2.get_json()['error']
+    assert res2.status_code == 409
+    assert 'already taken' in res2.get_json()['error']
 
-    # Third registration attempting to re-register the same email -> 409 Conflict
+    # Duplicate email attempt (case-insensitive) -> 409 Conflict
     res3 = client.post('/api/auth/register', json={
         'username': 'singleuse_user3',
         'fullName': 'Third Single Use User',
-        'email': email,
+        'email': 'SINGLE_USE@EXAMPLE.COM',
         'password': 'Password@12345',
-        'confirmPassword': 'Password@12345',
-        'verificationToken': token
+        'confirmPassword': 'Password@12345'
     })
     assert res3.status_code == 409
     assert 'already exists' in res3.get_json()['error']

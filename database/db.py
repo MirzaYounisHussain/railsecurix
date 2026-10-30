@@ -248,6 +248,8 @@ def run_migrations(conn):
         conn.execute("ALTER TABLE bookings ADD COLUMN contact_mobile TEXT DEFAULT '9876543210';")
     if 'contact_email' not in existing_booking_cols:
         conn.execute("ALTER TABLE bookings ADD COLUMN contact_email TEXT DEFAULT 'traveler@example.com';")
+    if 'payment_gateway_ref' not in existing_booking_cols:
+        conn.execute("ALTER TABLE bookings ADD COLUMN payment_gateway_ref TEXT DEFAULT NULL;")
 
     # 2. Ensure passengers table has berth_choice and status
     cursor = conn.execute("PRAGMA table_info(passengers);")
@@ -391,16 +393,18 @@ def check_username_available(username):
     return get_user_by_username(username) is None
 
 def check_email_available(email):
-    """Check if an email is available (case-insensitive). Returns True if free."""
+    """Check if an email is available (case-insensitive). Returns True if free or omitted."""
     if not email or not email.strip():
-        return False
+        return True
     return get_user_by_email(email) is None
 
-def create_user(username, password, full_name, email, role='user'):
+def create_user(username, password, full_name, email=None, role='user'):
     """Create a new user with hashed password after enforcing case-insensitive uniqueness."""
     norm_username = (username or '').strip()
-    norm_email = (email or '').strip().lower()
     norm_name = (full_name or '').strip()
+    norm_email = (email or '').strip().lower()
+    if not norm_email and norm_username:
+        norm_email = f"{norm_username.lower()}@railsim.local"
     if not norm_username or not password or not norm_email:
         return None
     conn = get_db_connection()
@@ -597,6 +601,7 @@ def save_booking(user_id, booking_data, passengers):
     """
     conn = get_db_connection()
     try:
+        initial_status = booking_data.get('status', 'PAYMENT_PENDING')
         cursor = conn.execute(
             '''INSERT INTO bookings (
                    pnr, user_id, booking_ref, train_id, train_number, train_name,
@@ -619,13 +624,14 @@ def save_booking(user_id, booking_data, passengers):
                 booking_data['travel_date'],
                 booking_data.get('quota', 'GN'),
                 booking_data['total_fare'],
-                'CONFIRMED',
+                initial_status,
                 booking_data.get('contact_mobile', '9876543210'),
                 booking_data.get('contact_email', 'traveler@example.com')
             )
         )
         booking_id = cursor.lastrowid
 
+        default_pax_status = 'HOLD' if initial_status == 'PAYMENT_PENDING' else 'CNF'
         for p in passengers:
             conn.execute(
                 '''INSERT INTO passengers (
@@ -638,7 +644,7 @@ def save_booking(user_id, booking_data, passengers):
                     p.get('gender', 'M'),
                     p.get('berth', p.get('berth_choice', 'NO_PREF')),
                     p.get('seat_allocated', 'B1-12 (LOWER)'),
-                    p.get('status', 'CNF')
+                    p.get('status', default_pax_status)
                 )
             )
             # Mark seat as booked in seats table if seat_allocated is given
@@ -657,6 +663,127 @@ def save_booking(user_id, booking_data, passengers):
         raise e
     finally:
         conn.close()
+
+
+def reconcile_booking_payment(booking_ref, gateway_txn_id, payment_status='SUCCESS', verified_amount=None, method='RailSim iPay', is_simulated=True):
+    """
+    Reconcile payment for a provisional or pending booking.
+    Handles idempotency, duplicate callbacks, state transitions (CONFIRMED / CANCELLED / PAYMENT_PENDING),
+    updates passenger status, and manages seat booking state.
+    """
+    conn = get_db_connection()
+    try:
+        booking = conn.execute(
+            'SELECT * FROM bookings WHERE booking_ref = ? OR pnr = ?',
+            (booking_ref, booking_ref)
+        ).fetchone()
+
+        if not booking:
+            return {'success': False, 'error': f"Booking reference '{booking_ref}' not found."}
+
+        booking_id = booking['id']
+        current_status = (booking['status'] or '').upper()
+        existing_ref = booking['payment_gateway_ref'] if 'payment_gateway_ref' in booking.keys() else None
+
+        # Idempotency / Duplicate callback protection
+        if current_status == 'CONFIRMED':
+            if payment_status.upper() == 'FAILED':
+                return {
+                    'success': False,
+                    'error': 'Invalid transition: cannot cancel an already confirmed booking with a failed payment.',
+                    'status': 'CONFIRMED'
+                }
+            return {
+                'success': True,
+                'status': 'CONFIRMED',
+                'bookingStatus': 'CONFIRMED',
+                'transactionId': existing_ref or gateway_txn_id,
+                'gateway': f"{method} (Simulated Demo)" if is_simulated else method,
+                'verified': True,
+                'isSimulated': is_simulated,
+                'alreadyConfirmed': True,
+                'message': 'Payment already confirmed for this booking.'
+            }
+
+        # Terminal cancelled state
+        if current_status in ('CANCELLED', 'REFUNDED'):
+            return {
+                'success': False,
+                'error': f"Cannot process payment for booking in terminal '{current_status}' state.",
+                'status': current_status
+            }
+
+        # Handle payment failure
+        if payment_status.upper() == 'FAILED':
+            conn.execute(
+                'UPDATE bookings SET status = ?, payment_gateway_ref = ? WHERE id = ?',
+                ('CANCELLED', gateway_txn_id, booking_id)
+            )
+            conn.execute('UPDATE passengers SET status = ? WHERE booking_id = ?', ('CAN', booking_id))
+            conn.execute('UPDATE seats SET is_booked = 0, booking_id = NULL WHERE booking_id = ?', (booking_id,))
+            conn.commit()
+            return {
+                'success': True,
+                'status': 'CANCELLED',
+                'bookingStatus': 'CANCELLED',
+                'transactionId': gateway_txn_id,
+                'verified': False,
+                'isSimulated': is_simulated,
+                'message': 'Payment failed; provisional hold cancelled and seats released.'
+            }
+
+        # Handle pending status
+        if payment_status.upper() in ('PENDING', 'PAYMENT_PENDING'):
+            conn.execute(
+                'UPDATE bookings SET status = ?, payment_gateway_ref = ? WHERE id = ?',
+                ('PAYMENT_PENDING', gateway_txn_id, booking_id)
+            )
+            conn.commit()
+            return {
+                'success': True,
+                'status': 'PAYMENT_PENDING',
+                'bookingStatus': 'PAYMENT_PENDING',
+                'transactionId': None,
+                'verified': False,
+                'isSimulated': is_simulated,
+                'message': 'Payment is pending gateway settlement.'
+            }
+
+        # Handle successful payment confirmation
+        conn.execute(
+            'UPDATE bookings SET status = ?, payment_gateway_ref = ? WHERE id = ?',
+            ('CONFIRMED', gateway_txn_id, booking_id)
+        )
+        conn.execute('UPDATE passengers SET status = ? WHERE booking_id = ?', ('CNF', booking_id))
+        conn.execute('UPDATE seats SET is_booked = 1 WHERE booking_id = ?', (booking_id,))
+        conn.commit()
+
+        return {
+            'success': True,
+            'status': 'CONFIRMED',
+            'bookingStatus': 'CONFIRMED',
+            'transactionId': gateway_txn_id,
+            'gateway': f"{method} (Simulated Demo)" if is_simulated else method,
+            'verified': True,
+            'isSimulated': is_simulated,
+            'message': 'Payment confirmed successfully. Electronic Reservation Slip (ERS) issued.'
+        }
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+def get_booking_by_ref(booking_ref):
+    """Retrieve single booking by booking_ref or PNR with passengers."""
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM bookings WHERE booking_ref = ? OR pnr = ?', (booking_ref, booking_ref)).fetchone()
+    if not row:
+        conn.close()
+        return None, []
+    passengers = conn.execute('SELECT * FROM passengers WHERE booking_id = ? ORDER BY id ASC', (row['id'],)).fetchall()
+    conn.close()
+    return row, passengers
 
 def get_bookings_by_user(user_id):
     """Retrieve all bookings owned by a specific user with passenger count."""

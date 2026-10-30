@@ -1,17 +1,23 @@
+/**
+ * RailSecurix - Train Search Serverless Function
+ * Handles GET /api/trains/search
+ */
+
 import { SCHEDULED_TRAINS, getSimulatedAvailability, normalizeQuota } from '../_data.js';
+import { getSupabaseClient } from '../_supabase.js';
 
 const POPULAR_STATIONS = [
-  { name: "NEW DELHI", code: "NDLS", full: "NEW DELHI - NDLS" },
-  { name: "JAMMU TAWI", code: "JAT", full: "JAMMU TAWI - JAT" },
-  { name: "MUMBAI CENTRAL", code: "BCT", full: "MUMBAI CENTRAL - BCT" },
-  { name: "HOWRAH JN", code: "HWH", full: "HOWRAH JN - HWH" },
-  { name: "KSR BENGALURU", code: "SBC", full: "KSR BENGALURU - SBC" },
-  { name: "CHENNAI CENTRAL", code: "MAS", full: "CHENNAI CENTRAL - MAS" },
-  { name: "VARANASI JN", code: "BSB", full: "VARANASI JN - BSB" },
-  { name: "PUNE JN", code: "PUNE", full: "PUNE JN - PUNE" },
-  { name: "AHMEDABAD JN", code: "ADI", full: "AHMEDABAD JN - ADI" },
-  { name: "LUCKNOW NR", code: "LKO", full: "LUCKNOW NR - LKO" },
-  { name: "PATNA JN", code: "PNBE", full: "PATNA JN - PNBE" },
+  { name: 'NEW DELHI', code: 'NDLS', full: 'NEW DELHI - NDLS' },
+  { name: 'JAMMU TAWI', code: 'JAT', full: 'JAMMU TAWI - JAT' },
+  { name: 'MUMBAI CENTRAL', code: 'BCT', full: 'MUMBAI CENTRAL - BCT' },
+  { name: 'HOWRAH JN', code: 'HWH', full: 'HOWRAH JN - HWH' },
+  { name: 'KSR BENGALURU', code: 'SBC', full: 'KSR BENGALURU - SBC' },
+  { name: 'CHENNAI CENTRAL', code: 'MAS', full: 'CHENNAI CENTRAL - MAS' },
+  { name: 'VARANASI JN', code: 'BSB', full: 'VARANASI JN - BSB' },
+  { name: 'PUNE JN', code: 'PUNE', full: 'PUNE JN - PUNE' },
+  { name: 'AHMEDABAD JN', code: 'ADI', full: 'AHMEDABAD JN - ADI' },
+  { name: 'LUCKNOW NR', code: 'LKO', full: 'LUCKNOW NR - LKO' },
+  { name: 'PATNA JN', code: 'PNBE', full: 'PATNA JN - PNBE' },
 ];
 
 function getStationCode(input) {
@@ -25,8 +31,7 @@ function getStationCode(input) {
   return parts.length > 1 ? parts[parts.length - 1].trim() : clean;
 }
 
-export default function handler(req, res) {
-  // CORS & caching headers
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -48,14 +53,38 @@ export default function handler(req, res) {
     // Prevent same source and destination station search
     if (srcCode && destCode && srcCode === destCode) {
       return res.status(400).json({
-        error: 'Source and destination cannot be the same.'
+        error: 'Source and destination cannot be the same.',
       });
     }
 
     const sClean = source.toUpperCase();
     const dClean = dest.toUpperCase();
 
-    let matching = SCHEDULED_TRAINS.filter(t => {
+    let trainsCatalog = SCHEDULED_TRAINS;
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data: dbTrains } = await supabase.from('trains').select('*');
+      if (dbTrains && dbTrains.length > 0) {
+        trainsCatalog = dbTrains.map(t => ({
+          id: String(t.id),
+          train_number: t.train_number,
+          train_name: t.train_name,
+          source_code: t.source_code,
+          dest_code: t.dest_code,
+          source_station: t.source_station,
+          dest_station: t.dest_station,
+          departure_time: t.departure_time,
+          arrival_time: t.arrival_time,
+          duration: t.duration,
+          fare_base: Number(t.fare_base || 650.0),
+          runs_on: Array.isArray(t.runs_on) ? t.runs_on : ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+          available_classes: Array.isArray(t.available_classes) ? t.available_classes : ['1A', '2A', '3A', 'SL'],
+          total_seats: t.total_seats || 72,
+        }));
+      }
+    }
+
+    let matching = trainsCatalog.filter(t => {
       const sMatch = !source ||
         (srcCode && t.source_code === srcCode) ||
         sClean === t.source_code ||
@@ -71,9 +100,8 @@ export default function handler(req, res) {
       return sMatch && dMatch;
     });
 
-    // If no direct routes match, fallback to the network's top active express trains
     if (matching.length === 0) {
-      matching = SCHEDULED_TRAINS.slice(0, 4);
+      matching = trainsCatalog.slice(0, 4);
     }
 
     const results = matching.map(t => {
@@ -97,7 +125,7 @@ export default function handler(req, res) {
         availableClasses: t.available_classes,
         totalSeats: t.total_seats || 72,
         seatsAvailable: availMatrix[0] ? availMatrix[0].available_count : 42,
-        availabilityMatrix: availMatrix
+        availabilityMatrix: availMatrix,
       };
     });
 
@@ -106,4 +134,3 @@ export default function handler(req, res) {
     return res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 }
-

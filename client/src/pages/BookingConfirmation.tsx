@@ -57,8 +57,10 @@ export const BookingConfirmation: React.FC = () => {
   const baseFare = Number(booking.fare) || 1360.00;
   const convenienceFee = booking.convenienceFee || 35.40;
   const travelInsurance = booking.travelInsurance !== undefined ? Number(booking.travelInsurance) : 0.45;
-  const transactionId = booking.transactionId || `TXN${Date.now()}`;
+  const isPaymentPending = (booking.bookingStatus || "").toUpperCase().includes("PENDING");
+  const transactionId = booking.transactionId || null;
   const paymentMethod = booking.paymentMethod || "RailSim iPay";
+  const isSimulated = Boolean(booking.isSimulated || (transactionId && transactionId.startsWith("SIM-TXN")) || paymentMethod.includes("Simulated"));
   const { user } = useAuth();
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export const BookingConfirmation: React.FC = () => {
         seatNumber: seatStr,
         travelDate: travelDate,
         PNR: pnr,
-        bookingStatus: "confirmed",
+        bookingStatus: isPaymentPending ? "pending" : "confirmed",
         totalAmount: totalPrice,
         fare: baseFare,
         source: source,
@@ -115,7 +117,7 @@ export const BookingConfirmation: React.FC = () => {
         seatNumber: passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", "),
         fare: baseFare,
         totalPrice,
-        bookingStatus: "CONFIRMED",
+        bookingStatus: isPaymentPending ? "PAYMENT_PENDING" : "CONFIRMED",
       };
       generateTicketPDF(ticketData);
     } catch (err) {
@@ -140,7 +142,7 @@ export const BookingConfirmation: React.FC = () => {
       seatNumber: passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", "),
       fare: baseFare,
       totalPrice,
-      bookingStatus: "CONFIRMED",
+      bookingStatus: isPaymentPending ? "PAYMENT_PENDING" : "CONFIRMED",
     });
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
@@ -183,17 +185,31 @@ export const BookingConfirmation: React.FC = () => {
         </div>
 
         {/* 2. Success Banner */}
-        <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500/40 rounded-3xl p-6 text-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
-            <CheckCircle className="w-6 h-6" />
+        {isPaymentPending ? (
+          <div className="bg-amber-500/10 dark:bg-amber-950/40 border-2 border-amber-500/40 rounded-3xl p-6 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center mx-auto shadow-md">
+              <Clock className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-black text-amber-900 dark:text-amber-300">
+              Booking Registered — Payment Pending Verification
+            </h2>
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+              Your provisional booking is held. Payment verification is pending settlement via the payment gateway.
+            </p>
           </div>
-          <h2 className="text-2xl font-black text-emerald-900 dark:text-emerald-300">
-            Booking Confirmed!
-          </h2>
-          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-            Your Electronic Reservation Slip (ERS) has been issued and confirmed.
-          </p>
-        </div>
+        ) : (
+          <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500/40 rounded-3xl p-6 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-black text-emerald-900 dark:text-emerald-300">
+              Booking Confirmed!
+            </h2>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+              Your Electronic Reservation Slip (ERS) has been issued and confirmed.
+            </p>
+          </div>
+        )}
 
         {/* 3. Electronic Reservation Slip (ERS) Ticket Card */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
@@ -202,9 +218,14 @@ export const BookingConfirmation: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-black tracking-tight">RAILSECURIX</span>
-                <span className="px-2 py-0.5 text-[10px] font-black rounded bg-orange-500 text-white uppercase tracking-wider">
-                  Official ERS
+                <span className={`px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-wider ${isPaymentPending ? "bg-amber-500 text-white" : "bg-orange-500 text-white"}`}>
+                  {isPaymentPending ? "PROVISIONAL ERS" : "Official ERS"}
                 </span>
+                {isSimulated && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                    Simulated Demo
+                  </span>
+                )}
               </div>
               <p className="text-xs text-blue-200">
                 Electronic Reservation Slip • Valid with original photo ID
@@ -310,8 +331,8 @@ export const BookingConfirmation: React.FC = () => {
                         <td className="p-3.5 font-black uppercase">{pax.fullName}</td>
                         <td className="p-3.5">{pax.age}</td>
                         <td className="p-3.5">{pax.gender}</td>
-                        <td className="p-3.5 text-emerald-600 dark:text-emerald-400 font-black">
-                          CNF / CONFIRMED
+                        <td className={`p-3.5 font-black ${isPaymentPending ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                          {isPaymentPending ? "HOLD / PAYMENT PENDING" : "CNF / CONFIRMED"}
                         </td>
                         <td className="p-3.5 font-mono font-black text-blue-700 dark:text-blue-400">
                           C2
@@ -355,13 +376,13 @@ export const BookingConfirmation: React.FC = () => {
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-baseline font-black">
                   <div>
                     <span className="text-sm text-[#0b2144] dark:text-white">
-                      Total Amount Paid
+                      {isPaymentPending ? "Total Amount Payable (Pending)" : "Total Amount Paid"}
                     </span>
                     <span className="text-[10px] text-slate-400 block font-normal">
-                      Transaction ID: {transactionId} • {paymentMethod}
+                      {transactionId ? `Transaction ID: ${transactionId} • ${paymentMethod}` : `Payment Pending • ${paymentMethod}`}
                     </span>
                   </div>
-                  <span className="text-lg text-emerald-600 dark:text-emerald-400">
+                  <span className={`text-lg ${isPaymentPending ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
                     ₹{totalPrice.toFixed(2)}
                   </span>
                 </div>

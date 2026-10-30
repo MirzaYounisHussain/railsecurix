@@ -5,6 +5,16 @@ import { api } from "@/services/api";
 import { UserPlus, Loader2, MailCheck, CheckCircle2, ArrowLeft, RefreshCw, KeyRound, Shield, Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const COMMON_EMAIL_DOMAIN_TYPOS: Record<string, string> = {
+  "gamil.com": "gmail.com",
+  "gmial.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gmaill.com": "gmail.com",
+  "yaho.com": "yahoo.com",
+  "hotmial.com": "hotmail.com",
+  "outlok.com": "outlook.com",
+};
+
 type RegisterStep = "signup_form" | "otp";
 
 const Register = () => {
@@ -38,7 +48,7 @@ const Register = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Step 1: Validate form (Username, Email, Full Name, Set Password, Confirm Password) and send OTP
+  // Step 1: Direct Registration (Email optional, OTP verification bypassed)
   const handleInitiateSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUser = username.trim();
@@ -48,9 +58,16 @@ const Register = () => {
       setError("Please choose a username.");
       return;
     }
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      setError("Please enter a valid email address.");
-      return;
+    if (cleanEmail) {
+      if (!cleanEmail.includes("@")) {
+        setError("Please enter a valid email address.");
+        return;
+      }
+      const domain = cleanEmail.split("@")[1];
+      if (domain && COMMON_EMAIL_DOMAIN_TYPOS[domain]) {
+        setError(`Did you mean @${COMMON_EMAIL_DOMAIN_TYPOS[domain]}? Please check your email address spelling to ensure delivery.`);
+        return;
+      }
     }
     if (!password) {
       setError("Please set a password.");
@@ -68,33 +85,18 @@ const Register = () => {
     setLoading(true);
     setError("");
     setSuccessMsg("");
-    setDevOtpCode(null);
 
     try {
-      // 1. Check availability
-      const avail = await api.checkAvailability(cleanUser, cleanEmail);
-      if (!avail.usernameAvailable) {
-        setError(avail.usernameMessage || "This username is already taken. Please choose another username.");
-        setLoading(false);
-        return;
-      }
-      if (!avail.emailAvailable) {
-        setError(avail.emailMessage || "An account with this email address already exists. Please sign in or use a different email.");
-        setLoading(false);
-        return;
-      }
-
-      // 2. Dispatch OTP
-      const res = await api.sendOtp(cleanUser, cleanEmail);
-      setSuccessMsg(res.message || "Verification code sent to your email.");
-      setCooldown(res.cooldownSeconds || 60);
-      setDeliveryMethod(res.deliveryMethod || "email");
-      if (res.devOtp) {
-        setDevOtpCode(res.devOtp);
-      }
-      setStep("otp");
+      await register({
+        username: cleanUser,
+        email: cleanEmail || undefined,
+        fullName: fullName.trim() || cleanUser,
+        password,
+        confirmPassword,
+      });
+      navigate("/");
     } catch (err: any) {
-      setError(err.message || "Failed to send verification code. Please check your network and try again.");
+      setError(err.message || "Registration failed. Please check your details and try again.");
     } finally {
       setLoading(false);
     }
@@ -106,9 +108,10 @@ const Register = () => {
     setLoading(true);
     setError("");
     setSuccessMsg("");
+    setOtp(""); // Clear previous input to avoid submitting stale codes
     try {
       const res = await api.sendOtp(username.trim(), email.trim().toLowerCase());
-      setSuccessMsg(res.message || "New verification code sent to your email.");
+      setSuccessMsg(res.message || "A new 6-digit verification code has been dispatched. Please check your inbox for the latest code.");
       setCooldown(res.cooldownSeconds || 60);
       setDeliveryMethod(res.deliveryMethod || "email");
       if (res.devOtp) {
@@ -167,17 +170,19 @@ const Register = () => {
           <div>
             <h1 className="text-xl font-extrabold text-foreground">Create Traveler Account</h1>
             <p className="text-xs text-muted-foreground">
-              {step === "signup_form" && "Enter your details & credentials to receive verification OTP"}
+              {step === "signup_form" && "Enter your credentials to create your traveler account"}
               {step === "otp" && "Enter the 6-digit verification code sent to your email"}
             </p>
           </div>
         </div>
 
         {/* Progress Indicator */}
-        <div className="mb-6 flex items-center justify-between gap-2 px-1">
-          <div className={`h-1.5 flex-1 rounded-full transition-colors ${step === "signup_form" ? "bg-blue-600" : "bg-emerald-500"}`} />
-          <div className={`h-1.5 flex-1 rounded-full transition-colors ${step === "otp" ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800"}`} />
-        </div>
+        {step === "otp" && (
+          <div className="mb-6 flex items-center justify-between gap-2 px-1">
+            <div className="h-1.5 flex-1 rounded-full bg-emerald-500" />
+            <div className="h-1.5 flex-1 rounded-full bg-blue-600" />
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
@@ -213,18 +218,17 @@ const Register = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                Email Address
+                Email Address (Optional)
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="traveler@example.com"
+                placeholder="traveler@example.com (optional)"
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-medium text-foreground transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:focus:bg-slate-900"
-                required
                 autoComplete="email"
               />
-              <p className="text-[11px] text-muted-foreground">A 6-digit one-time code will be dispatched to this email.</p>
+              <p className="text-[11px] text-muted-foreground">Optional. You can provide an email or register directly with username and password.</p>
             </div>
 
             <div className="space-y-1.5">
@@ -307,8 +311,8 @@ const Register = () => {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <MailCheck className="w-4 h-4" />
-                  <span>Continue & Send Verification Code</span>
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create Account</span>
                 </>
               )}
             </Button>
@@ -328,6 +332,7 @@ const Register = () => {
                     setStep("signup_form");
                     setError("");
                     setSuccessMsg("");
+                    setOtp("");
                   }}
                   className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
                 >
@@ -390,6 +395,7 @@ const Register = () => {
                   setStep("signup_form");
                   setError("");
                   setSuccessMsg("");
+                  setOtp("");
                 }}
                 className="text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium"
               >

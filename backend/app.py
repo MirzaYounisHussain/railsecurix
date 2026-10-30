@@ -10,6 +10,8 @@ import uuid
 import random
 from datetime import datetime, timedelta
 import re
+import hmac
+import hashlib
 from flask import (
     Flask, render_template, request, redirect,
     url_for, session, flash, jsonify, abort, send_from_directory
@@ -38,6 +40,8 @@ from database.db import (
     consume_verification_token,
     get_last_otp_sent_time,
     save_booking,
+    reconcile_booking_payment,
+    get_booking_by_ref,
     get_bookings_by_user,
     get_booking_by_pnr,
     get_all_bookings,
@@ -686,11 +690,15 @@ def create_app():
                 flash('This username is already taken. Please choose another username.', 'danger')
                 return render_template('register.html')
 
-            if not check_email_available(email):
-                flash('An account with this email address already exists. Please sign in or use a different email.', 'danger')
-                return render_template('register.html')
+            if email:
+                if not check_email_available(email):
+                    flash('An account with this email address already exists. Please sign in or use a different email.', 'danger')
+                    return render_template('register.html')
+                effective_email = email
+            else:
+                effective_email = f"{username.lower()}@railsim.local"
 
-            new_user_id = create_user(username, password, full_name, email, role='user')
+            new_user_id = create_user(username, password, full_name, effective_email, role='user')
             if not new_user_id:
                 flash('This username is already taken. Please choose another username.', 'danger')
                 return render_template('register.html')
@@ -699,7 +707,7 @@ def create_app():
             session['user_id'] = new_user_id
             session['role'] = 'user'
             session['full_name'] = full_name
-            session['email'] = email
+            session['email'] = effective_email
 
             flash(f'Registration successful! Welcome, {full_name or username}.', 'success')
             return redirect(url_for('search'))
@@ -933,7 +941,7 @@ def create_app():
         if delivered:
             msg = f"A 6-digit verification code has been dispatched to {email}."
         else:
-            msg = f"A 6-digit verification code was generated (Local Dev Mode). Configure RESEND_API_KEY in .env for live inbox delivery."
+            msg = f"A 6-digit verification code was generated (Local Dev Mode). Configure BREVO_API_KEY in .env for live inbox delivery."
 
         resp_payload = {
             'success': True,
@@ -1005,8 +1013,6 @@ def create_app():
 
         if not username or not password:
             return jsonify({'success': False, 'error': 'Username and password are required'}), 400
-        if not email:
-            return jsonify({'success': False, 'error': 'Email address is required'}), 400
         if password != confirm_password:
             return jsonify({'success': False, 'error': 'Passwords do not match'}), 400
 
@@ -1014,28 +1020,31 @@ def create_app():
         if not check_username_available(username):
             return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
 
-        if not check_email_available(email):
-            return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
+        # Optional email handling & schema compatibility
+        if email:
+            if not check_email_available(email):
+                return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
+            effective_email = email
+        else:
+            # Deterministic, unique internal fallback satisfying SQLite & PostgreSQL NOT NULL and UNIQUE constraints
+            effective_email = f"{username.lower()}@railsim.local"
 
-        # Verification token consumption (enforces that OTP was verified on the server)
-        token_valid = consume_verification_token(email, verification_token, purpose='registration') if verification_token else False
-        if not token_valid:
-            return jsonify({
-                'success': False,
-                'error': 'Email verification is required before account creation. Please verify your email with OTP.'
-            }), 403
+        # Optional OTP verification: if verificationToken is provided, consume it.
+        # Direct registration without OTP is permitted.
+        if verification_token and email:
+            consume_verification_token(email, verification_token, purpose='registration')
 
-        new_id = create_user(username, password, full_name, email, role='user')
+        new_id = create_user(username, password, full_name, effective_email, role='user')
         if not new_id:
             if not check_username_available(username):
                 return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
-            return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
+            return jsonify({'success': False, 'error': 'Failed to create user account. Please verify your details.'}), 409
 
         session['username'] = username
         session['user_id'] = new_id
         session['role'] = 'user'
         session['full_name'] = full_name
-        session['email'] = email
+        session['email'] = effective_email
         return jsonify({
             'success': True,
             'message': 'Account created successfully.',
@@ -1299,7 +1308,7 @@ def create_app():
                 'gender': p.get('gender') or 'M',
                 'berth_choice': p.get('berth') or p.get('berth_choice') or 'NO_PREF',
                 'seat_allocated': seat_alloc,
-                'status': 'CNF'
+                'status': 'HOLD'
             })
 
         # Generate unique 10-digit simulated PNR
@@ -1332,7 +1341,7 @@ def create_app():
                 'bookingId': booking_id,
                 'bookingRef': booking_ref,
                 'totalFare': total_fare,
-                'status': 'CONFIRMED',
+                'status': 'PAYMENT_PENDING',
                 'passengers': passengers
             }), 201
         except Exception as e:
@@ -1341,15 +1350,79 @@ def create_app():
     @app.route('/api/bookings/confirm-payment', methods=['POST'])
     def api_confirm_payment():
         data = request.get_json(silent=True) or {}
-        # Simulated payment verification
-        txn_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
-        return jsonify({
-            'success': True,
-            'transactionId': txn_id,
-            'status': 'SUCCESS',
-            'gateway': data.get('method', 'UPI'),
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        booking_ref = data.get('bookingRef') or data.get('booking_ref') or data.get('pnr')
+        method = data.get('method') or 'RailSim iPay'
+        amount = data.get('amount')
+        requested_status = (data.get('status') or 'SUCCESS').upper()
+
+        if not booking_ref:
+            return jsonify({'success': False, 'error': 'Booking reference or PNR is required'}), 400
+
+        # FIX 1: Strict payment simulation boundary
+        # Only the explicitly designated RailSim iPay demo method or explicitly authorized simulated transactions may receive simulated confirmation.
+        # Real gateway payment methods must never be automatically confirmed because PAYMENT_WEBHOOK_SECRET is missing.
+        is_explicit_demo = method == 'RailSim iPay' or 'railsim ipay' in method.lower()
+        is_explicit_simulated = data.get('isSimulated') is True
+        is_simulated = is_explicit_demo or is_explicit_simulated
+
+        if not is_simulated:
+            # Real gateway transactions must strictly remain PAYMENT_PENDING until valid payment confirmation is received.
+            return jsonify({
+                'success': True,
+                'transactionId': None,
+                'status': 'PAYMENT_PENDING',
+                'verified': False,
+                'gateway': method,
+                'message': 'Payment verification is pending gateway webhook confirmation. Booking remains in PAYMENT_PENDING status.',
+                'timestamp': datetime.utcnow().isoformat()
+            })
+
+        # Local simulated payment demonstration flow
+        sim_txn_id = data.get('transactionId') or f"SIM-TXN-{uuid.uuid4().hex[:12].upper()}"
+        result = reconcile_booking_payment(
+            booking_ref=booking_ref,
+            gateway_txn_id=sim_txn_id,
+            payment_status=requested_status,
+            verified_amount=amount,
+            method=method,
+            is_simulated=True
+        )
+
+        status_code = 200 if result.get('success') else (404 if 'not found' in result.get('error', '').lower() else 400)
+        return jsonify(result), status_code
+
+    @app.route('/api/bookings/webhook', methods=['POST'])
+    @app.route('/api/bookings/reconcile-webhook', methods=['POST'])
+    def api_bookings_webhook():
+        signature = request.headers.get('X-Gateway-Signature') or request.headers.get('X-Webhook-Signature')
+        webhook_secret = os.environ.get('PAYMENT_WEBHOOK_SECRET')
+        if not webhook_secret or not signature:
+            return jsonify({
+                'success': False,
+                'error': 'Cryptographically verified gateway signature required for payment reconciliation.'
+            }), 401
+
+        raw_body = request.get_data()
+        expected_sig = hmac.new(webhook_secret.encode('utf-8'), raw_body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature.strip(), expected_sig):
+            return jsonify({'success': False, 'error': 'Invalid gateway webhook signature.'}), 401
+
+        body = request.get_json(silent=True) or {}
+        booking_ref = body.get('bookingRef') or body.get('booking_ref')
+        gateway_txn_id = body.get('gatewayTxnId') or body.get('gateway_txn_id')
+        payment_status = (body.get('status') or body.get('payment_status') or 'SUCCESS').upper()
+        amount = body.get('amount')
+
+        result = reconcile_booking_payment(
+            booking_ref=booking_ref,
+            gateway_txn_id=gateway_txn_id,
+            payment_status=payment_status,
+            verified_amount=amount,
+            method='Gateway Webhook',
+            is_simulated=False
+        )
+        status_code = 200 if result.get('success') else 400
+        return jsonify(result), status_code
 
     @app.route('/api/bookings/my-bookings', methods=['GET'])
     @login_required
@@ -1509,6 +1582,14 @@ def create_app():
                 'truePositives': 73
             }
         })
+
+    # --- Supabase Connectivity Status (Safe Diagnostic Endpoint) ---
+    @app.route('/api/system/supabase-status', methods=['GET'])
+    def api_system_supabase_status():
+        """Safe, read-only diagnostic endpoint verifying Supabase connectivity."""
+        from backend.supabase_client import test_supabase_connection
+        result = test_supabase_connection()
+        return jsonify(result)
 
     # --- React SPA Serving ---
     client_dist = os.path.join(BASE_DIR, 'client', 'dist')

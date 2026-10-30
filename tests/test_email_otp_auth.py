@@ -121,16 +121,26 @@ def test_04_full_otp_and_registration_workflow(client):
     assert reg_data['user']['username'] == user
     assert reg_data['user']['email'] == email
 
-    # Step 4: Token cannot be reused (replay attack prevention)
-    replay_res = client.post('/api/auth/register', json={
-        'username': 'another_user',
-        'email': 'another@example.com',
-        'fullName': 'Another User',
+    # Step 4: Enforce case-insensitive username & email uniqueness (no-OTP policy)
+    dup_user_res = client.post('/api/auth/register', json={
+        'username': user.upper(),
+        'email': 'different_email@example.com',
+        'fullName': 'Duplicate Username',
         'password': 'Password@123',
-        'confirmPassword': 'Password@123',
-        'verificationToken': token
+        'confirmPassword': 'Password@123'
     })
-    assert replay_res.status_code in (403, 409)
+    assert dup_user_res.status_code == 409
+    assert 'already taken' in dup_user_res.get_json()['error']
+
+    dup_email_res = client.post('/api/auth/register', json={
+        'username': 'distinct_unique_traveler',
+        'email': email.upper(),
+        'fullName': 'Duplicate Email',
+        'password': 'Password@123',
+        'confirmPassword': 'Password@123'
+    })
+    assert dup_email_res.status_code == 409
+    assert 'already exists' in dup_email_res.get_json()['error']
 
     # Step 5: Successfully registered user can log in
     client.post('/api/auth/logout')
@@ -143,30 +153,30 @@ def test_04_full_otp_and_registration_workflow(client):
     assert login_data['success'] is True
     assert login_data['user']['username'] == user
 
-def test_05_registration_without_otp_blocked(client):
-    """Direct API registration calls without verified OTP must be blocked with HTTP 403."""
+def test_05_direct_registration_without_otp_succeeds(client):
+    """Direct API registration with username, email, and password succeeds under no-OTP policy."""
     res = client.post('/api/auth/register', json={
-        'username': 'unverified_hacker',
-        'email': 'hacker@example.com',
+        'username': 'direct_traveler_no_otp',
+        'email': 'traveler_direct@example.com',
         'fullName': 'No OTP User',
         'password': 'Password123!',
         'confirmPassword': 'Password123!'
-        # No verificationToken
     })
-    assert res.status_code == 403
-    assert 'Email verification is required' in res.get_json()['error']
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data['success'] is True
+    assert data['user']['username'] == 'direct_traveler_no_otp'
+    assert data['user']['email'] == 'traveler_direct@example.com'
 
-    # Forged verificationToken
-    forged_res = client.post('/api/auth/register', json={
-        'username': 'unverified_hacker',
-        'email': 'hacker@example.com',
-        'fullName': 'No OTP User',
+    # Duplicate registration is rejected with 409 Conflict
+    dup_res = client.post('/api/auth/register', json={
+        'username': 'direct_traveler_no_otp',
+        'email': 'another_traveler@example.com',
+        'fullName': 'Duplicate User',
         'password': 'Password123!',
-        'confirmPassword': 'Password123!',
-        'verificationToken': 'fake-token-12345'
+        'confirmPassword': 'Password123!'
     })
-    assert forged_res.status_code == 403
-    assert 'Email verification is required' in forged_res.get_json()['error']
+    assert dup_res.status_code == 409
 
 def test_06_database_level_uniqueness_enforcement(app):
     """Confirm database table constraints reject duplicates even if simultaneous queries bypass app checks."""

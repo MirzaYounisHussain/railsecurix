@@ -284,12 +284,12 @@ def send_otp_email(to_email: str, otp: str, purpose: str = "registration") -> di
     print(f"OTP Code:  {otp}", file=sys.stderr)
     print(f"Purpose:   {purpose}", file=sys.stderr)
     print(f"Expiry:    5 minutes", file=sys.stderr)
-    print(f"Note:      Set RESEND_API_KEY or SMTP credentials in .env for live inbox delivery.", file=sys.stderr)
+    print(f"Note:      Set BREVO_API_KEY, RESEND_API_KEY, or SMTP credentials in .env for live inbox delivery.", file=sys.stderr)
     print("=" * 76 + "\n", file=sys.stderr)
 
     return {
         "delivered": False,
         "provider": "development_console",
         "status": "dev_logged",
-        "message": "OTP logged to server terminal for local verification. Set RESEND_API_KEY or SMTP in .env for live inbox dispatch."
+        "message": "OTP logged to server terminal for local verification. Set BREVO_API_KEY, RESEND_API_KEY, or SMTP in .env for live inbox dispatch."
     }

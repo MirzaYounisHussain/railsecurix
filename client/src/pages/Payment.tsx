@@ -100,6 +100,8 @@ export const Payment: React.FC = () => {
 
       const currentUsername = user?.username || "testuser";
       const seatStr = passengers.map((_, i) => `C2-${14 + i}`).join(", ");
+      const effectiveStatus = (paymentRes.status || (paymentRes as any).bookingStatus || bookingRes.status || "CONFIRMED").toUpperCase();
+      const isConfirmed = effectiveStatus === "CONFIRMED" || effectiveStatus === "SUCCESS";
 
       const savedBooking: Booking = {
         id: String(bookingRes.bookingId || bookingRes.pnr),
@@ -114,7 +116,7 @@ export const Payment: React.FC = () => {
         seatNumber: seatStr,
         travelDate: date,
         PNR: bookingRes.pnr,
-        bookingStatus: "confirmed",
+        bookingStatus: isConfirmed ? "confirmed" : "pending",
         totalAmount: grandTotal,
         fare: fare,
         source: train.source,
@@ -138,7 +140,7 @@ export const Payment: React.FC = () => {
           PNR: bookingRes.pnr,
           bookingId: bookingRes.bookingId,
           bookingRef: bookingRes.bookingRef,
-          transactionId: paymentRes.transactionId || `TXN${Date.now()}`,
+          transactionId: paymentRes.transactionId || null,
           coach: selectedClass || "CC",
           seatNumber: seatStr,
           trainName: train.trainName,
@@ -154,8 +156,9 @@ export const Payment: React.FC = () => {
           totalPrice: grandTotal,
           convenienceFee,
           travelInsurance,
-          bookingStatus: "CONFIRMED",
-          paymentMethod: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
+          bookingStatus: isConfirmed ? "CONFIRMED" : effectiveStatus,
+          paymentMethod: paymentRes.gateway || (selectedMethod === "ipay" ? "RailSim iPay (Simulated Demo)" : selectedGateway),
+          isSimulated: (paymentRes as any).isSimulated ?? (selectedMethod === "ipay" || true),
         },
       });
     } catch (err: any) {
@@ -179,7 +182,7 @@ export const Payment: React.FC = () => {
         seatNumber: seatStr,
         travelDate: date,
         PNR: fallbackPnr,
-        bookingStatus: "confirmed",
+        bookingStatus: (bookingRes.status || "").toLowerCase().includes("confirmed") ? "confirmed" : "pending",
         totalAmount: grandTotal,
         fare: fare,
         source: train.source,
@@ -202,7 +205,7 @@ export const Payment: React.FC = () => {
           PNR: fallbackPnr,
           bookingId: fallbackId,
           bookingRef: `REF-${Date.now()}`,
-          transactionId: `TXN${Date.now()}`,
+          transactionId: null,
           coach: selectedClass || "CC",
           seatNumber: seatStr,
           trainName: train.trainName,
@@ -218,7 +221,7 @@ export const Payment: React.FC = () => {
           totalPrice: grandTotal,
           convenienceFee,
           travelInsurance,
-          bookingStatus: "CONFIRMED",
+          bookingStatus: bookingRes.status || "PAYMENT_PENDING",
           paymentMethod: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
         },
       });
