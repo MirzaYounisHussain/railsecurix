@@ -1,6 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/api/stations/:id",
+      "destination": "/api/stations?id=:id"
+    },
+    {
+      "source": "/api/bookings/pnr/:pnr",
+      "destination": "/api/bookings/[...slug]?slug=pnr&slug=:pnr&pnr=:pnr"
+    },
+    {
+      "source": "/api/trains/:id/seats",
+      "destination": "/api/trains/[...slug]?slug=:id&slug=seats&id=:id"
+    },
+    {
+      "source": "/api/trains/status/:trainNumber",
+      "destination": "/api/trains/[...slug]?slug=status&slug=:trainNumber&trainNumber=:trainNumber"
+    },
+    {
+      "source": "/api/admin/security/:action",
+      "destination": "/api/admin/[...slug]?slug=security&slug=:action"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

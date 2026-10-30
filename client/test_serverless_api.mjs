@@ -118,8 +118,8 @@ async function runTests() {
   // 4. /api/system/supabase-status
   console.log('\n--- 4. /api/system/supabase-status Endpoint Checks ---');
   await test('GET /api/system/supabase-status responds with diagnostic structure', async () => {
-    const { default: handler } = await import('./api/system/supabase-status.js');
-    const { req, res } = createMockReqRes({ method: 'GET', url: '/api/system/supabase-status' });
+    const { default: handler } = await import('./api/system/[action].js');
+    const { req, res } = createMockReqRes({ method: 'GET', url: '/api/system/supabase-status', query: { action: 'supabase-status' } });
     await handler(req, res);
     assert.equal(res.statusCode, 200);
     assert.equal(typeof res.bodyData.success, 'boolean');
@@ -151,7 +151,7 @@ async function runTests() {
   });
 
   await test('DELETE /api/stations/:id rejects unauthenticated requests with 403', async () => {
-    const { default: handler } = await import('./api/stations/[id].js');
+    const { default: handler } = await import('./api/stations.js');
     const { req, res } = createMockReqRes({
       method: 'DELETE',
       url: '/api/stations/1',
@@ -165,11 +165,11 @@ async function runTests() {
   // 6. /api/trains/search
   console.log('\n--- 6. /api/trains/search Endpoint Checks ---');
   await test('GET /api/trains/search returns trains for valid route', async () => {
-    const { default: handler } = await import('./api/trains/search.js');
+    const { default: handler } = await import('./api/trains/[...slug].js');
     const { req, res } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/search',
-      query: { source: 'NDLS', destination: 'BCT', date: '2026-11-01', quota: 'GN' },
+      query: { slug: ['search'], source: 'NDLS', destination: 'BCT', date: '2026-11-01', quota: 'GN' },
     });
     await handler(req, res);
     assert.equal(res.statusCode, 200);
@@ -180,11 +180,11 @@ async function runTests() {
   });
 
   await test('GET /api/trains/search rejects identical source and destination with 400', async () => {
-    const { default: handler } = await import('./api/trains/search.js');
+    const { default: handler } = await import('./api/trains/[...slug].js');
     const { req, res } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/search',
-      query: { source: 'NDLS', destination: 'NDLS' },
+      query: { slug: ['search'], source: 'NDLS', destination: 'NDLS' },
     });
     await handler(req, res);
     assert.equal(res.statusCode, 400);
@@ -194,11 +194,11 @@ async function runTests() {
   // 7. /api/trains/:id and /api/trains/:id/seats
   console.log('\n--- 7. /api/trains/[id] Details and Seats Layout Checks ---');
   await test('GET /api/trains/:id returns valid train details', async () => {
-    const { default: handler } = await import('./api/trains/[id]/index.js');
+    const { default: handler } = await import('./api/trains/[...slug].js');
     const { req, res } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/12951',
-      query: { id: '12951' },
+      query: { slug: ['12951'], id: '12951' },
     });
     await handler(req, res);
     assert.equal(res.statusCode, 200);
@@ -207,11 +207,11 @@ async function runTests() {
   });
 
   await test('GET /api/trains/:id/seats returns 36-seat coach layout', async () => {
-    const { default: handler } = await import('./api/trains/[id]/seats.js');
+    const { default: handler } = await import('./api/trains/[...slug].js');
     const { req, res } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/12951/seats',
-      query: { id: '12951', date: '2026-11-01', class: '3A' },
+      query: { slug: ['12951', 'seats'], id: '12951', date: '2026-11-01', class: '3A' },
     });
     await handler(req, res);
     assert.equal(res.statusCode, 200);
@@ -221,11 +221,11 @@ async function runTests() {
   });
 
   await test('GET /api/trains/status/:trainNumber validates 5-digit number', async () => {
-    const { default: handler } = await import('./api/trains/status/[trainNumber].js');
+    const { default: handler } = await import('./api/trains/[...slug].js');
     const { req: badReq, res: badRes } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/status/abc',
-      query: { trainNumber: 'abc' },
+      query: { slug: ['status', 'abc'], trainNumber: 'abc' },
     });
     await handler(badReq, badRes);
     assert.equal(badRes.statusCode, 400);
@@ -233,7 +233,7 @@ async function runTests() {
     const { req: goodReq, res: goodRes } = createMockReqRes({
       method: 'GET',
       url: '/api/trains/status/12951',
-      query: { trainNumber: '12951' },
+      query: { slug: ['status', '12951'], trainNumber: '12951' },
     });
     await handler(goodReq, goodRes);
     assert.equal(goodRes.statusCode, 200);
@@ -437,7 +437,7 @@ async function runTests() {
 
   // 11. /api/bookings/* (Create, Confirm-Payment, My-Bookings, PNR)
   console.log('\n--- 11. Bookings & Payment Architecture Checks ---');
-  const { default: bookingHandler } = await import('./api/bookings/[action].js');
+  const { default: bookingHandler } = await import('./api/bookings/[...slug].js');
 
   await test('POST /api/bookings/create rejects unauthenticated request with 401', async () => {
     const { req, res } = createMockReqRes({
@@ -580,11 +580,11 @@ async function runTests() {
   });
 
   await test('GET /api/bookings/pnr/:pnr validates 10-digit format', async () => {
-    const { default: pnrHandler } = await import('./api/bookings/pnr/[pnr].js');
+    const { default: pnrHandler } = await import('./api/bookings/[...slug].js');
     const { req: badReq, res: badRes } = createMockReqRes({
       method: 'GET',
       url: '/api/bookings/pnr/12345',
-      query: { pnr: '12345' },
+      query: { slug: ['pnr', '12345'], pnr: '12345' },
     });
     await pnrHandler(badReq, badRes);
     assert.equal(badRes.statusCode, 400);
@@ -592,7 +592,7 @@ async function runTests() {
     const { req: goodReq, res: goodRes } = createMockReqRes({
       method: 'GET',
       url: '/api/bookings/pnr/2412345678',
-      query: { pnr: '2412345678' },
+      query: { slug: ['pnr', '2412345678'], pnr: '2412345678' },
     });
     await pnrHandler(goodReq, goodRes);
     assert.equal(goodRes.statusCode, 200);
@@ -614,8 +614,8 @@ async function runTests() {
   });
 
   await test('GET /api/security/risk-score returns session risk profile', async () => {
-    const { default: handler } = await import('./api/security/risk-score.js');
-    const { req, res } = createMockReqRes({ method: 'GET', url: '/api/security/risk-score' });
+    const { default: handler } = await import('./api/security/[action].js');
+    const { req, res } = createMockReqRes({ method: 'GET', url: '/api/security/risk-score', query: { action: 'risk-score' } });
     await handler(req, res);
     assert.equal(res.statusCode, 200);
     assert.equal(typeof res.bodyData.riskScore, 'number');
@@ -623,11 +623,12 @@ async function runTests() {
   });
 
   await test('POST /api/security/verify-challenge validates pattern answer', async () => {
-    const { default: handler } = await import('./api/security/verify-challenge.js');
+    const { default: handler } = await import('./api/security/[action].js');
     // Wrong answer
     const { req: badReq, res: badRes } = createMockReqRes({
       method: 'POST',
       url: '/api/security/verify-challenge',
+      query: { action: 'verify-challenge' },
       body: { answer: 'BUS' },
     });
     await handler(badReq, badRes);
@@ -637,6 +638,7 @@ async function runTests() {
     const { req: goodReq, res: goodRes } = createMockReqRes({
       method: 'POST',
       url: '/api/security/verify-challenge',
+      query: { action: 'verify-challenge' },
       body: { answer: 'TRAIN' },
     });
     await handler(goodReq, goodRes);
@@ -685,6 +687,90 @@ async function runTests() {
     assert.equal(res.statusCode, 200);
     assert.ok(res.bodyData.totalUsers !== undefined);
     assert.ok(res.bodyData.activeSessionsCount !== undefined);
+  });
+
+  // 14. Nested Vercel Route Rewrites & Parameter Extraction Regression Checks
+  console.log('\n--- 14. Nested Route Rewrites & Vercel Parameter Extraction ---');
+
+  await test('Nested GET /api/admin/security/sessions extracts slug array correctly', async () => {
+    const adminCookie = encodeURIComponent(JSON.stringify({ id: 99, username: 'admin', role: 'admin' }));
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/admin/security/sessions',
+      query: { slug: ['security', 'sessions'], action: 'sessions' },
+      headers: { cookie: `railsim_session=${adminCookie}` },
+    });
+    await adminHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.ok(Array.isArray(res.bodyData));
+    assert.ok(res.bodyData.some(s => s.username === 'admin'));
+  });
+
+  await test('Nested GET /api/admin/security/ml-stats extracts slug array correctly', async () => {
+    const adminCookie = encodeURIComponent(JSON.stringify({ id: 99, username: 'admin', role: 'admin' }));
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/admin/security/ml-stats',
+      query: { slug: ['security', 'ml-stats'], action: 'ml-stats' },
+      headers: { cookie: `railsim_session=${adminCookie}` },
+    });
+    await adminHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.ok(res.bodyData.model);
+    assert.equal(res.bodyData.trainingSessions, 450);
+  });
+
+  await test('Nested GET /api/stations/:id returns single station', async () => {
+    const { default: stationsHandler } = await import('./api/stations.js');
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/stations/1',
+      query: { id: '1' },
+    });
+    await stationsHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.bodyData.id, '1');
+    assert.equal(res.bodyData.stationCode, 'NDLS');
+  });
+
+  await test('Nested GET /api/bookings/pnr/:pnr via Vercel rewrite parameters', async () => {
+    const { default: bookingsHandler } = await import('./api/bookings/[...slug].js');
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/bookings/pnr/2412345678',
+      query: { slug: ['pnr', '2412345678'], pnr: '2412345678' },
+    });
+    await bookingsHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.bodyData.pnr, '2412345678');
+    assert.ok(res.bodyData.trainNumber);
+  });
+
+  await test('Nested GET /api/trains/:id/seats via Vercel rewrite parameters', async () => {
+    const { default: trainsHandler } = await import('./api/trains/[...slug].js');
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/trains/12951/seats',
+      query: { slug: ['12951', 'seats'], id: '12951', date: '2026-11-01', class: '3A' },
+    });
+    await trainsHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.bodyData.trainId, '12951');
+    assert.equal(res.bodyData.classCode, '3A');
+    assert.ok(Array.isArray(res.bodyData.seats));
+  });
+
+  await test('Nested GET /api/trains/status/:trainNumber via Vercel rewrite parameters', async () => {
+    const { default: trainsHandler } = await import('./api/trains/[...slug].js');
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      url: '/api/trains/status/12951',
+      query: { slug: ['status', '12951'], trainNumber: '12951' },
+    });
+    await trainsHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.bodyData.trainNumber, '12951');
+    assert.ok(res.bodyData.status);
   });
 
   console.log('\n===============================================================');

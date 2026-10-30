@@ -92,7 +92,7 @@ async function runAdvancedTests() {
 
   const { default: authHandler } = await import('./api/auth/[action].js');
   const { default: seatHandler } = await import('./api/seats/[action].js');
-  const { default: bookingHandler } = await import('./api/bookings/[action].js');
+  const { default: bookingHandler } = await import('./api/bookings/[...slug].js');
   const { default: fareHandler } = await import('./api/fare/calculate.js');
 
   // 1. Direct Registration & Case-Insensitive Uniqueness Enforcement (No-OTP Policy)

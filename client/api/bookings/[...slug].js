@@ -1,6 +1,12 @@
 /**
- * RailSecurix - Bookings Serverless Function
- * Handles POST /api/bookings/create, POST /api/bookings/confirm-payment, GET /api/bookings/my-bookings
+ * RailSecurix - Bookings Catch-All Serverless Function
+ * Handles:
+ *  - POST /api/bookings/create
+ *  - POST /api/bookings/confirm-payment
+ *  - POST /api/bookings/webhook / reconcile-webhook
+ *  - GET /api/bookings/my-bookings
+ *  - POST /api/bookings/cancel
+ *  - GET /api/bookings/pnr/:pnr
  */
 
 import crypto from 'node:crypto';
@@ -22,14 +28,86 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const rawAction = req.query?.action || (req.url ? req.url.split('?')[0].split('/').filter(Boolean).pop() : '');
-  const action = (Array.isArray(rawAction) ? rawAction[0] : rawAction).toLowerCase();
+  // Parse path segments: support req.query.slug (array or string) or fallback to req.url / req.query.action
+  const rawSlug = req.query?.slug || req.query?.action || (req.url ? req.url.split('?')[0].replace(/^\/api\/bookings\/?/, '').split('/').filter(Boolean) : []);
+  const slug = Array.isArray(rawSlug) ? rawSlug : [String(rawSlug)];
+
+  const firstSeg = (slug[0] || '').toString().toLowerCase();
+  const secondSeg = (slug[1] || '').toString().trim();
 
   const sessionToken = extractSessionToken(req);
   const currentUser = await resolveUserFromSession(sessionToken);
   const supabase = getSupabaseClient();
 
   try {
+    // ========================================================================
+    // ROUTE 0: GET /api/bookings/pnr/:pnr
+    // ========================================================================
+    if (firstSeg === 'pnr' || (req.url && req.url.includes('/pnr/'))) {
+      if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      const rawPnr = secondSeg || req.query?.pnr || (req.url ? req.url.split('?')[0].split('/').filter(Boolean).pop() : '');
+      const pnr = (Array.isArray(rawPnr) ? rawPnr[0] : rawPnr).toString().trim();
+
+      if (!/^\d{10}$/.test(pnr)) {
+        return res.status(400).json({ error: 'Please enter a valid 10-digit PNR number.' });
+      }
+
+      if (supabase) {
+        const { data: booking } = await supabase
+          .from('bookings')
+          .select('*, passengers(*)')
+          .eq('pnr', pnr)
+          .single();
+
+        if (booking) {
+          const pList = (booking.passengers || []).map((p, idx) => ({
+            passengerNumber: idx + 1,
+            name: p.name ? `${p.name.charAt(0)}***` : `Passenger ${idx + 1}`,
+            berthChoice: p.berth_choice,
+            seatAllocated: p.seat_allocated,
+            status: p.status,
+          }));
+          return res.status(200).json({
+            pnr: booking.pnr,
+            trainNumber: booking.train_number,
+            trainName: `${booking.train_name} (#${booking.train_number})`,
+            source: booking.source_station,
+            destination: booking.dest_station,
+            route: `${booking.source_station} → ${booking.dest_station}`,
+            departureTime: booking.departure_time,
+            arrivalTime: booking.arrival_time,
+            travelDate: booking.travel_date,
+            travelClass: booking.travel_class,
+            quota: booking.quota,
+            totalFare: booking.total_fare,
+            status: booking.status || 'PAYMENT_PENDING',
+            coach: booking.travel_class || 'C2',
+            berth: pList[0]?.seat_allocated || '34 (Window Side)',
+            chartStatus: 'Chart Prepared',
+            passengers: pList,
+            bookingRef: booking.booking_ref,
+            createdAt: booking.created_at,
+          });
+        }
+      }
+
+      // Fallback demo response
+      return res.status(200).json({
+        pnr,
+        trainNumber: '22439',
+        trainName: 'Vande Bharat Ex (#22439)',
+        source: 'NDLS - New Delhi',
+        destination: 'JAT - Jammu Tawi',
+        route: 'NDLS – New Delhi → JAT – Jammu Tawi',
+        coach: 'C2',
+        berth: '34 (Window Side)',
+        chartStatus: 'Chart Prepared',
+        status: 'CNF (Confirmed)',
+      });
+    }
+
+    const action = firstSeg;
+
     // ------------------------------------------------------------------------
     // 1. POST /api/bookings/create
     // ------------------------------------------------------------------------
@@ -44,108 +122,97 @@ export default async function handler(req, res) {
       const travelClass = (body.travelClass || body.class || '3A').toUpperCase();
       const travelDate = body.travelDate || body.date;
       const quota = (body.quota || 'GN').toUpperCase();
-      const contactMobile = body.contactMobile || body.mobile || '9876543210';
-      const contactEmail = body.contactEmail || body.email || currentUser.email || 'traveler@example.com';
-      const passengersRaw = body.passengers || [];
+      const passengers = Array.isArray(body.passengers) ? body.passengers : [];
+      const clientFare = Number(body.totalFare || body.fare || 0);
 
-      if (!trainId || !travelDate) {
-        return res.status(400).json({ success: false, error: 'Train ID and travel date are required.' });
+      if (!trainId || !travelDate || passengers.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Train ID, travel date, and at least one passenger are required.',
+        });
       }
 
-      const passengersList = passengersRaw.length > 0
-        ? passengersRaw
-        : [{ name: currentUser.fullName || 'Traveler', age: 30, gender: 'M', berth: 'LOWER' }];
+      // Security check: Authoritative server-side fare calculation
+      const authCalc = await calculateAuthoritativeFare(trainId, travelClass, quota, passengers.length);
+      const totalFare = authCalc.fare;
 
-      // Fetch authoritative train details
-      let train = null;
-      if (supabase) {
-        const { data: dbTrains } = await supabase
+      if (clientFare > 0 && Math.abs(clientFare - totalFare) > 1.0) {
+        return res.status(400).json({
+          success: false,
+          error: `Fare mismatch: client submitted ₹${clientFare}, authoritative fare is ₹${totalFare}.`,
+        });
+      }
+
+      let trainObj = SCHEDULED_TRAINS.find(t => t.id === String(trainId) || t.train_number === String(trainId));
+      if (!trainObj && supabase) {
+        const { data: dbTrain } = await supabase
           .from('trains')
           .select('*')
           .or(`id.eq.${trainId},train_number.eq.${trainId}`)
-          .limit(1);
-        if (dbTrains && dbTrains.length > 0) train = dbTrains[0];
-      }
-      if (!train) {
-        train = SCHEDULED_TRAINS.find(t => t.id === trainId || t.train_number === trainId) || SCHEDULED_TRAINS[0];
+          .maybeSingle();
+        if (dbTrain) {
+          trainObj = {
+            id: String(dbTrain.id),
+            train_number: dbTrain.train_number,
+            train_name: dbTrain.train_name,
+            source_code: dbTrain.source_code,
+            dest_code: dbTrain.dest_code,
+            source_station: dbTrain.source_station,
+            dest_station: dbTrain.dest_station,
+            departure_time: dbTrain.departure_time,
+            arrival_time: dbTrain.arrival_time,
+          };
+        }
       }
 
-      // Recalculate authoritative fare server-side
-      const fareInfo = calculateAuthoritativeFare(train, travelClass, quota, passengersList.length);
-      const totalFare = fareInfo.total_fare;
+      const trainNumber = trainObj ? trainObj.train_number : '12951';
+      const trainName = trainObj ? trainObj.train_name : 'Express Special';
+      const sourceStation = trainObj ? trainObj.source_station : 'NDLS';
+      const destStation = trainObj ? trainObj.dest_station : 'BCT';
+      const depTime = trainObj ? trainObj.departure_time : '16:30';
+      const arrTime = trainObj ? trainObj.arrival_time : '08:35';
 
-      // Format passenger records
-      const formattedPassengers = passengersList.map((p, idx) => ({
+      const pnr = `24${Math.floor(10000000 + Math.random() * 90000000)}`;
+      const bookingRef = `RSX-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+      const formattedPassengers = passengers.map((p, idx) => ({
         name: p.name || `Passenger ${idx + 1}`,
-        age: parseInt(p.age, 10) || 30,
+        age: Number(p.age) || 30,
         gender: p.gender || 'M',
-        berth_choice: p.berth || p.berth_choice || 'NO_PREF',
-        seat_allocated: p.seat || p.seat_allocated || `${travelClass}-${14 + idx} (Window Side)`,
+        berth_choice: p.berth_choice || p.berthChoice || 'NO_PREF',
+        seat_allocated: `${travelClass}-${idx + 12}`,
         status: 'HOLD',
       }));
 
-      const pnr = `24${Math.floor(10000000 + Math.random() * 90000000)}`;
-      const bookingRef = `REF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-      const seatNumbers = formattedPassengers.map(p => p.seat_allocated).filter(Boolean);
-
       if (supabase) {
-        // Try atomic stored procedure
-        try {
-          const { data: rpcData, error: rpcErr } = await supabase.rpc('create_booking_atomic', {
-            p_user_id: currentUser.id,
-            p_session_token: sessionToken,
-            p_pnr: pnr,
-            p_booking_ref: bookingRef,
-            p_train_id: String(train.id || trainId),
-            p_travel_class: travelClass,
-            p_travel_date: travelDate,
-            p_quota: quota,
-            p_claimed_fare: totalFare,
-            p_contact_mobile: contactMobile,
-            p_contact_email: contactEmail,
-            p_seat_numbers: seatNumbers,
-            p_passengers: formattedPassengers,
-          });
+        const bookingInsert = {
+          user_id: currentUser.id,
+          train_id: trainObj?.id || String(trainId),
+          train_number: trainNumber,
+          train_name: trainName,
+          source_station: sourceStation,
+          dest_station: destStation,
+          departure_time: depTime,
+          arrival_time: arrTime,
+          travel_date: travelDate,
+          travel_class: travelClass,
+          quota,
+          total_fare: totalFare,
+          status: 'PAYMENT_PENDING',
+          pnr,
+          booking_ref: bookingRef,
+          session_token: sessionToken,
+        };
 
-          if (!rpcErr && rpcData && rpcData.success) {
-            return res.status(201).json({
-              success: true,
-              pnr: rpcData.pnr || pnr,
-              bookingId: rpcData.booking_id,
-              bookingRef: rpcData.booking_ref || bookingRef,
-              totalFare: rpcData.total_fare || totalFare,
-              status: 'PAYMENT_PENDING',
-              passengers: formattedPassengers,
-            });
-          }
-        } catch {
-          // fallback to direct table insert
-        }
-
-        // Direct table insert with PAYMENT_PENDING status
         const { data: newBooking, error: bErr } = await supabase
           .from('bookings')
-          .insert({
-            pnr,
-            booking_ref: bookingRef,
-            user_id: currentUser.id,
-            train_id: String(train.id || trainId),
-            train_number: train.train_number || '12951',
-            train_name: train.train_name || 'Express',
-            source_station: train.source_station || 'NDLS',
-            dest_station: train.dest_station || 'BCT',
-            departure_time: train.departure_time || '16:55',
-            arrival_time: train.arrival_time || '08:35',
-            travel_class: travelClass,
-            travel_date: travelDate,
-            quota,
-            total_fare: totalFare,
-            status: 'PAYMENT_PENDING',
-            contact_mobile: contactMobile,
-            contact_email: contactEmail,
-          })
+          .insert(bookingInsert)
           .select('id')
           .single();
+
+        if (bErr) {
+          return res.status(500).json({ success: false, error: 'Failed to record booking hold.' });
+        }
 
         const bookingId = newBooking ? newBooking.id : Date.now();
 
