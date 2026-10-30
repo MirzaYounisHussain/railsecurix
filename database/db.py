@@ -5,7 +5,7 @@ booking persistence, and administrative query models.
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import sqlite3
 import hashlib
@@ -278,6 +278,29 @@ def run_migrations(conn):
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_email_otps_lookup ON email_otps(email, purpose, verified);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_email_otps_token ON email_otps(verification_token);")
+
+    # 5. Ensure sync_metadata table and station/train indexes exist
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sync_metadata (
+            key TEXT PRIMARY KEY,
+            last_synced_at TIMESTAMP,
+            item_count INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            details TEXT
+        );
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS route_cache (
+            source_code TEXT NOT NULL,
+            dest_code TEXT NOT NULL,
+            trains_json TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (source_code, dest_code)
+        );
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_stations_name ON stations(name);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_stations_city ON stations(city);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trains_route ON trains(source_code, dest_code);")
 
     conn.commit()
 
@@ -756,6 +779,178 @@ def delete_station(station_id):
     conn.commit()
     conn.close()
 
+def search_stations(query='', limit=50):
+    """
+    Search stations from local database with prioritized prefix and name matching.
+    Returns up to `limit` stations (default 50).
+    When query is empty, returns popular stations first.
+    """
+    conn = get_db_connection()
+    q = (query or '').strip()
+    if not q:
+        rows = conn.execute('''
+            SELECT * FROM stations 
+            ORDER BY 
+                CASE 
+                    WHEN code IN ('NDLS','BCT','HWH','MAS','SBC','PNBE','ADI','PUNE','HYB','JAT') THEN 0 
+                    ELSE 1 
+                END, 
+                name ASC 
+            LIMIT ?
+        ''', (limit,)).fetchall()
+    else:
+        q_upper = q.upper()
+        wildcard = f"%{q}%"
+        rows = conn.execute('''
+            SELECT * FROM stations 
+            WHERE code LIKE ? OR name LIKE ? OR city LIKE ?
+            ORDER BY 
+                CASE 
+                    WHEN code = ? THEN 0 
+                    WHEN code LIKE ? THEN 1 
+                    WHEN UPPER(name) LIKE ? THEN 2 
+                    ELSE 3 
+                END, 
+                name ASC 
+            LIMIT ?
+        ''', (wildcard, wildcard, wildcard, q_upper, f"{q_upper}%", f"{q_upper}%", limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def bulk_upsert_stations(stations_list):
+    """
+    Atomically upsert a list of stations into the SQLite database.
+    Each station dict should have 'code', 'name', optional 'city', 'state'.
+    """
+    if not stations_list:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    records = []
+    for s in stations_list:
+        code = s.get('code', '').strip().upper()
+        name = s.get('name', '').strip()
+        city = s.get('city', '').strip() or name
+        state = s.get('state', '').strip()
+        if code and name:
+            records.append((code, name, city, state))
+
+    cursor.executemany('''
+        INSERT INTO stations (code, name, city, state)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET
+            name = excluded.name,
+            city = CASE WHEN excluded.city != '' THEN excluded.city ELSE stations.city END,
+            state = CASE WHEN excluded.state != '' THEN excluded.state ELSE stations.state END
+    ''', records)
+    conn.commit()
+    count = cursor.rowcount
+    conn.close()
+    return count
+
+# --------------------------------------------------------------------------
+# Synchronization Metadata Operations (7-Day TTL Cache Management)
+# --------------------------------------------------------------------------
+def get_sync_metadata(key):
+    """Retrieve synchronization metadata for a specific key."""
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM sync_metadata WHERE key = ?', (key,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def set_sync_metadata(key, item_count=0, status='success', details=''):
+    """Record or update sync metadata with current timestamp."""
+    conn = get_db_connection()
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    conn.execute('''
+        INSERT INTO sync_metadata (key, last_synced_at, item_count, status, details)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+            last_synced_at = excluded.last_synced_at,
+            item_count = excluded.item_count,
+            status = excluded.status,
+            details = excluded.details
+    ''', (key, now_str, item_count, status, str(details)))
+    conn.commit()
+    conn.close()
+
+def is_sync_due(key, interval_days=7):
+    """
+    Check if a sync is due based on the last_synced_at timestamp.
+    Returns True if no sync has ever run, or if last_synced_at is older than interval_days.
+    Returns False if cache is still fresh within the 7-day window.
+    """
+    meta = get_sync_metadata(key)
+    if not meta or not meta.get('last_synced_at'):
+        return True
+    try:
+        last_str = str(meta['last_synced_at'])
+        if 'T' in last_str:
+            last_dt = datetime.fromisoformat(last_str.replace('Z', '+00:00'))
+        else:
+            last_dt = datetime.strptime(last_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
+        now_dt = datetime.now(timezone.utc)
+        diff = (now_dt - last_dt).total_seconds()
+        return diff >= (interval_days * 86400)
+    except Exception:
+        return True
+
+def bulk_upsert_trains(trains_list):
+    """
+    Atomically upsert trains into the SQLite database.
+    """
+    if not trains_list:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    records = []
+    for tr in trains_list:
+        tid = tr.get('id') or f"T{tr.get('train_number')}"
+        runs_on = json.dumps(tr.get('runs_on', ["M", "T", "W", "T", "F", "S", "S"])) if isinstance(tr.get('runs_on'), list) else tr.get('runs_on', '["M", "T", "W", "T", "F", "S", "S"]')
+        avail_classes = json.dumps(tr.get('available_classes', ["1A", "2A", "3A", "SL"])) if isinstance(tr.get('available_classes'), list) else tr.get('available_classes', '["1A", "2A", "3A", "SL"]')
+        records.append((
+            tid,
+            str(tr.get('train_number')),
+            tr.get('train_name', ''),
+            tr.get('source_code', 'NDLS'),
+            tr.get('dest_code', 'BCT'),
+            tr.get('source_station', tr.get('source_code', 'NDLS')),
+            tr.get('dest_station', tr.get('dest_code', 'BCT')),
+            tr.get('departure_time', '06:00'),
+            tr.get('arrival_time', '18:00'),
+            tr.get('duration', '12h 00m'),
+            float(tr.get('fare_base', 500.0)),
+            runs_on,
+            avail_classes,
+            int(tr.get('total_seats', 72))
+        ))
+    cursor.executemany('''
+        INSERT INTO trains (
+            id, train_number, train_name, source_code, dest_code,
+            source_station, dest_station, departure_time, arrival_time,
+            duration, fare_base, runs_on, available_classes, total_seats
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            train_number = excluded.train_number,
+            train_name = excluded.train_name,
+            source_code = excluded.source_code,
+            dest_code = excluded.dest_code,
+            source_station = excluded.source_station,
+            dest_station = excluded.dest_station,
+            departure_time = excluded.departure_time,
+            arrival_time = excluded.arrival_time,
+            duration = excluded.duration,
+            fare_base = excluded.fare_base,
+            runs_on = excluded.runs_on,
+            available_classes = excluded.available_classes,
+            total_seats = excluded.total_seats
+    ''', records)
+    conn.commit()
+    count = cursor.rowcount
+    conn.close()
+    return count
+
+
 # --------------------------------------------------------------------------
 # Train Model Operations
 # --------------------------------------------------------------------------
@@ -784,11 +979,60 @@ def get_train_by_id(train_id):
     d['available_classes'] = json.loads(d['available_classes']) if isinstance(d['available_classes'], str) else d['available_classes']
     return d
 
+def get_cached_route_trains(source_code, dest_code):
+    """Retrieve cached trains JSON for route."""
+    conn = get_db_connection()
+    row = conn.execute(
+        'SELECT trains_json, updated_at FROM route_cache WHERE source_code = ? AND dest_code = ?',
+        (source_code.strip().upper(), dest_code.strip().upper())
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None, None
+    try:
+        return json.loads(row['trains_json']), row['updated_at']
+    except Exception:
+        return None, None
+
+def save_cached_route_trains(source_code, dest_code, trains_list):
+    """Save or update cached route trains JSON."""
+    conn = get_db_connection()
+    now_str = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    conn.execute('''
+        INSERT INTO route_cache (source_code, dest_code, trains_json, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(source_code, dest_code) DO UPDATE SET
+            trains_json = excluded.trains_json,
+            updated_at = excluded.updated_at
+    ''', (source_code.strip().upper(), dest_code.strip().upper(), json.dumps(trains_list), now_str))
+    conn.commit()
+    conn.close()
+
+def get_trains_by_route(source_code, dest_code):
+    """Retrieve all trains matching exact origin and destination station codes."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT * FROM trains 
+        WHERE source_code = ? AND dest_code = ?
+        ORDER BY departure_time ASC
+    ''', (source_code.strip().upper(), dest_code.strip().upper())).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        d['runs_on'] = json.loads(d['runs_on']) if isinstance(d['runs_on'], str) else d['runs_on']
+        d['available_classes'] = json.loads(d['available_classes']) if isinstance(d['available_classes'], str) else d['available_classes']
+        result.append(d)
+    return result
+
 def search_trains_db(source='', destination='', travel_date=None):
     """Filter scheduled trains matching origin and destination station codes or names."""
     all_trains = get_all_trains()
     s_clean = (source or '').upper().strip()
     d_clean = (destination or '').upper().strip()
+
+    if not s_clean and not d_clean:
+        return all_trains[:6]
 
     matching = []
     for t in all_trains:
@@ -797,7 +1041,7 @@ def search_trains_db(source='', destination='', travel_date=None):
         if s_match and d_match:
             matching.append(t)
 
-    return matching if matching else all_trains[:3]
+    return matching
 
 # --------------------------------------------------------------------------
 # Authoritative Fare Calculation Engine

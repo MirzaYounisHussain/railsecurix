@@ -133,3 +133,25 @@ CREATE TABLE IF NOT EXISTS email_otps (
 
 CREATE INDEX IF NOT EXISTS idx_email_otps_lookup ON email_otps(email, purpose, verified);
 CREATE INDEX IF NOT EXISTS idx_email_otps_token ON email_otps(verification_token);
+
+-- RailRadar Synchronisation Metadata & Cache Tracking
+CREATE TABLE IF NOT EXISTS sync_metadata (
+    key TEXT PRIMARY KEY,
+    last_synced_at TIMESTAMP,
+    item_count INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    details TEXT
+);
+
+CREATE TABLE IF NOT EXISTS route_cache (
+    source_code TEXT NOT NULL,
+    dest_code TEXT NOT NULL,
+    trains_json TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (source_code, dest_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_stations_name ON stations(name);
+CREATE INDEX IF NOT EXISTS idx_stations_city ON stations(city);
+CREATE INDEX IF NOT EXISTS idx_trains_route ON trains(source_code, dest_code);
+

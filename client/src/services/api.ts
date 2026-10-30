@@ -127,8 +127,9 @@ export const api = {
   },
 
   // Stations
-  async getStations(): Promise<Array<{ id: string; stationCode: string; stationName: string; city: string; state: string }>> {
-    return request('/stations');
+  async getStations(query?: string): Promise<Array<{ id: string; stationCode: string; stationName: string; city: string; state: string }>> {
+    const endpoint = query ? `/stations?q=${encodeURIComponent(query)}` : '/stations';
+    return request(endpoint);
   },
 
   async addStation(data: { stationCode: string; stationName: string; city: string; state: string }): Promise<{ success: boolean; id: string }> {
