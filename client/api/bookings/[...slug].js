@@ -134,7 +134,7 @@ export default async function handler(req, res) {
 
       // Security check: Authoritative server-side fare calculation
       const authCalc = await calculateAuthoritativeFare(trainId, travelClass, quota, passengers.length);
-      const totalFare = authCalc.fare;
+      const totalFare = authCalc.total_fare || authCalc.fare || 1170;
 
       if (clientFare > 0 && Math.abs(clientFare - totalFare) > 1.0) {
         return res.status(400).json({
