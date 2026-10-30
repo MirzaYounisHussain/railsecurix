@@ -15,13 +15,8 @@ import {
   ShieldCheck,
   Activity,
   Lock,
-  Laptop,
-  Server,
-  Database,
   ArrowDown,
   BrainCircuit,
-  HelpCircle,
-  ExternalLink,
 } from "lucide-react";
 
 interface SectionMeta {
@@ -48,7 +43,7 @@ const SECTIONS_META: SectionMeta[] = [
     name: "Proposed Solution",
     shortName: "Solution",
     icon: Sparkles,
-    tagline: "AI-assisted behavioral telemetry & adaptive reservation protection",
+    tagline: "Behavioural classification, bot benchmarking & adaptive protection",
   },
   {
     id: "objectives",
@@ -56,7 +51,7 @@ const SECTIONS_META: SectionMeta[] = [
     name: "Objectives",
     shortName: "Objectives",
     icon: Target,
-    tagline: "Concrete SMART targets for academic prototype evaluation",
+    tagline: "Core research & evaluation objectives for bot vs. human separation",
   },
   {
     id: "system-architecture",
@@ -64,7 +59,7 @@ const SECTIONS_META: SectionMeta[] = [
     name: "System Architecture",
     shortName: "Architecture",
     icon: Layers,
-    tagline: "End-to-end dataflow, telemetry capture, and subsystem design",
+    tagline: "End-to-end dataflow, current implementation & pending detection layers",
   },
   {
     id: "next-milestones",
@@ -72,7 +67,7 @@ const SECTIONS_META: SectionMeta[] = [
     name: "Next Milestones",
     shortName: "Milestones",
     icon: Milestone,
-    tagline: "Key deliverables prepared for upcoming prototype demonstration",
+    tagline: "Upcoming roadmap from bot simulation to AI model integration",
   },
 ];
 
@@ -189,8 +184,11 @@ export const About: React.FC = () => {
                   <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
                     The Primary Challenge
                   </span>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-black text-[#0b2144] dark:text-white">
+                    Automated Ticket Scalping vs. Genuine Railway Passengers
+                  </h3>
                   <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
-                    During periods of high demand, railway passengers can face difficulties securing confirmed tickets. Automated booking bots and unfair reservation practices can reduce genuine passengers' chances of booking tickets. Traditional booking systems may also struggle to distinguish legitimate human activity from suspicious automated behaviour without creating unnecessary friction for real users.
+                    Ticket and travel booking sites are often flooded by automated programs (bots) that grab seats within seconds, hoard them, or resell them at a markup. Genuine customers then find everything sold out. The usual defences, such as CAPTCHAs and IP blocklists, annoy real users, and modern bots can often get past them anyway. A bot can look like a normal visitor on paper, but it rarely behaves like one. The way it moves the mouse, types, and rushes through pages gives it away.
                   </p>
                 </div>
 
@@ -200,34 +198,34 @@ export const About: React.FC = () => {
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      High-Demand Ticket Scarcity
+                      Instant Seat Hoarding
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      High-demand Tatkal reservation quotas open for short daily timeframes, causing extreme concurrency spikes where genuine travelers compete against programmatic scripts.
+                      Automated bots flood booking portals the moment reservations open, grabbing seats in seconds to hoard or resell them while genuine passengers find everything sold out.
                     </p>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 space-y-2">
                     <div className="p-2 rounded-xl bg-rose-600 text-white w-fit">
-                      <Bot className="w-4 h-4" />
+                      <Clock className="w-4 h-4" />
                     </div>
                     <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Automated Scalping Bots
+                      Flawed Traditional Defences
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Automated scripts and extension macros fill out forms in sub-second intervals and lock up available seats, starving out ordinary passengers using manual inputs.
+                      Conventional defences such as CAPTCHAs and IP blocklists frustrate and slow down real travelers, while modern bots routinely bypass them.
                     </p>
                   </div>
 
                   <div className="p-5 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 space-y-2">
                     <div className="p-2 rounded-xl bg-blue-600 text-white w-fit">
-                      <Clock className="w-4 h-4" />
+                      <Bot className="w-4 h-4" />
                     </div>
                     <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      CAPTCHA Friction Dilemma
+                      Behavioural Signatures
                     </h3>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Conventional distorted-text and image CAPTCHAs delay genuine travelers, cause accessibility barriers, and fail against modern automated solver services.
+                      While a bot can appear identical to a normal visitor on paper, the way it moves the mouse, types, and rushes through booking pages exposes its automated nature.
                     </p>
                   </div>
                 </div>
@@ -243,103 +241,139 @@ export const About: React.FC = () => {
                   <span className="text-xs font-bold uppercase tracking-wider text-[#f95c19]">
                     Core Solution Concept
                   </span>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-black text-[#0b2144] dark:text-white">
+                    Passive Behavioural Intelligence & Adaptive Ticket Protection
+                  </h3>
                   <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
-                    RailSecurix is an AI-assisted railway booking security concept designed to support fairer and safer ticket reservations. It uses behavioural signals and risk-based analysis to help identify suspicious automated booking activity while keeping the booking experience smooth for genuine passengers.
+                    RailSecurix replaces intrusive CAPTCHAs with silent, real-time behavioural analysis. Instead of forcing every passenger to solve puzzles, the platform observes how a user interacts with the booking flow—how they move the mouse, type passenger details, and navigate between steps—to distinguish genuine travellers from automated booking scripts.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="p-2 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 w-fit">
-                        <Activity className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Implemented
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Behavioural Bot Detection
-                    </h3>
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                    <span className="p-2.5 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 w-fit block">
+                      <Activity className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                      Silent Interaction Telemetry
+                    </h4>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Continuous telemetry measuring natural keystroke flight times, mouse cursor velocity, and form dwell times rather than intrusive challenges.
+                      Passively captures fine-grained interaction signals in the background—including mouse path curvature, velocity jitter, keystroke flight times, and page dwell times—without interrupting the user.
                     </p>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit">
-                        <Layers className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Implemented
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Multi-Signal Telemetry Analysis
-                    </h3>
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                    <span className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit block">
+                      <BrainCircuit className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                      Session-Level ML Risk Scoring
+                    </h4>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Correlates spatial curvature, mouse entropy, typing cadence, and scroll hesitation into unified session vectors.
+                      Aggregates behavioural features across the entire booking session into a machine learning classifier that computes a continuous bot-probability risk score before seat confirmation.
                     </p>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
-                        <BrainCircuit className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Implemented
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Adaptive Risk-Based Protection
-                    </h3>
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                    <span className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit block">
+                      <ShieldCheck className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                      Graduated Adaptive Defence
+                    </h4>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Graduated policy response: Low risk sessions check out directly; elevated anomalies trigger lightweight verification step-ups.
+                      Applies proportional security based on risk: genuine human sessions book directly with zero friction, ambiguous sessions receive a lightweight verification challenge, and high-confidence bots are blocked.
                     </p>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
-                        <Lock className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Implemented
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Secure Online Booking
-                    </h3>
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                    <span className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit block">
+                      <Lock className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                      Fair Seat Reservation Locking
+                    </h4>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Authentic seat locking mechanisms, temporary lock expiration timers, and authoritative transactional booking APIs.
+                      Prevents automated inventory hoarding by pairing authoritative seat locks and expiration timers with behavioural verification prior to final ticket issuance.
                     </p>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2 md:col-span-2 lg:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Implemented
-                      </span>
-                    </div>
-                    <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-                      Reduced Friction for Legitimate Users
-                    </h3>
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5 md:col-span-2 lg:col-span-2">
+                    <span className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit block">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
+                      Zero-Friction Experience for Real Passengers
+                    </h4>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                      Valid human passengers experience zero puzzle interruptions or delays, ensuring they can reserve their seats rapidly during peak reservation openings.
+                      Because human travellers naturally exhibit organic cursor movement and typing rhythms, legitimate customers complete their railway bookings smoothly without solving distorted text or image CAPTCHAs.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 flex items-start gap-3 text-xs text-slate-600 dark:text-slate-400">
-                  <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Project Implementation Note:</strong> Capabilities shown as implemented reflect the local simulated railway stack (Flask API + React SPA + SQLite). Live connectivity to national production railway networks is conceptual.
-                  </span>
+                {/* Project Status Roadmap inside Proposed Solution */}
+                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                      Project Status &amp; Execution Roadmap
+                    </span>
+                    <h4 className="text-base sm:text-lg font-extrabold text-[#0b2144] dark:text-white">
+                      Where We Are Right Now &amp; What Comes Next
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          Stage 01 &bull; Current State
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                          Completed
+                        </span>
+                      </div>
+                      <h5 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                        Frontend &amp; Booking Website
+                      </h5>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        We have designed and built the complete railway reservation website featuring station autocomplete, dynamic journey dates, class filtering, fare sorting, and passenger checkout.
+                      </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-orange-50/70 dark:bg-orange-950/25 border border-orange-200 dark:border-orange-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#f95c19]">
+                          Stage 02 &bull; Next Step
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white">
+                          Up Next
+                        </span>
+                      </div>
+                      <h5 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                        Automated Bot Script
+                      </h5>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Next, we will build automated scripts that attack our booking portal—ranging from fast form-filling bots to scripts that mimic human mouse paths and typing delays.
+                      </p>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/25 border border-blue-200 dark:border-blue-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                          Stage 03 &bull; Final Step
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#0b2144] text-white">
+                          Planned
+                        </span>
+                      </div>
+                      <h5 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                        AI Bot Detection System
+                      </h5>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Finally, we will train the behavioural machine learning classifier on the collected interaction data and integrate real-time risk scoring into the booking flow.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -351,74 +385,80 @@ export const About: React.FC = () => {
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-sm border border-slate-200/90 dark:border-slate-800 space-y-6">
                 <div className="space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                    SMART Project Targets
+                    Specific Project Targets
                   </span>
-                  <h3 className="text-lg sm:text-xl font-black text-[#0b2144] dark:text-white">
-                    Specific, Measurable, Achievable, Relevant, and Time-bound Goals
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-black text-[#0b2144] dark:text-white">
+                    Measurable Research &amp; Evaluation Objectives
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    The following goals serve as proposed evaluation targets for upcoming academic prototype testing:
+                    Each objective defines a specific experimental target, evaluation method, and success metric for separating automated ticket scalpers from real passengers:
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#f95c19]">Target 1</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          Proposed Target
+                        <div className="p-2.5 rounded-xl bg-orange-500 text-white w-fit">
+                          <Activity className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-[#f95c19]">
+                          Objective 01
                         </span>
                       </div>
                       <h4 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                        Behavioural Detection
+                        Session-Level Classifier Accuracy on Held-Out Data
                       </h4>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Develop and test a prototype that evaluates multiple behavioural signals to identify suspicious automated booking patterns, targeting at least <strong>85% detection precision</strong> on a documented test dataset by the next project milestone.
+                        Measure how accurately interaction behaviour separates bots from real passengers by training a session-level ML classifier (using cursor speed, path curvature, keystroke intervals, and page dwell time) and reporting both the <strong>bot detection rate (TPR)</strong> and <strong>human false-positive rate (FPR)</strong> strictly on held-out sessions so no session appears in both training and testing.
                       </p>
                     </div>
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500">
-                      Precision Metric: &ge; 85%
+                      Target Metric: Bot Detection Rate (TPR) vs. Human FPR on Disjoint Sessions
                     </div>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#f95c19]">Target 2</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          Proposed Target
+                        <div className="p-2.5 rounded-xl bg-blue-600 text-white w-fit">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                          Objective 02
                         </span>
                       </div>
                       <h4 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                        Booking Experience
+                        Multi-Bot Evasion Benchmarking &amp; Signal Ablation
                       </h4>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Evaluate the booking interface with at least <strong>10 representative test scenarios</strong> and aim for successful completion of at least <strong>95% of valid user flows</strong> by the next testing milestone.
+                        Test resilience against progressively smarter bots—from a basic instant autofill script to an advanced bot that imitates human Bezier mouse curves and randomized typing delays. Benchmark the ML classifier against a simple completion-speed threshold rule, and run a <strong>feature ablation study</strong> removing one signal group at a time (mouse, keyboard, timing) to rank feature importance.
                       </p>
                     </div>
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500">
-                      Success Rate: &ge; 95% (10 Scenarios)
+                      Target Metric: ML vs. Speed Rule + Feature Contribution Ranking
                     </div>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-[#f95c19]">Target 3</span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          Proposed Target
+                        <div className="p-2.5 rounded-xl bg-emerald-600 text-white w-fit">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          Objective 03
                         </span>
                       </div>
                       <h4 className="font-extrabold text-base text-slate-900 dark:text-slate-100">
-                        Responsive Usability
+                        Bot Booking Reduction vs. Passenger Friction Rate
                       </h4>
                       <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Validate the About page and primary navigation across mobile, tablet, laptop, and desktop layouts, aiming for <strong>zero critical layout defects</strong> and <strong>zero broken navigation links</strong> before the next project demonstration.
+                        Quantify how effectively adaptive risk-based protection prevents seat hoarding with minimal human annoyance. Compare the percentage of <strong>successful bot ticket bookings</strong> on the protected portal against the unprotected baseline portal, and measure the exact percentage of genuine human travellers who get challenged or blocked.
                       </p>
                     </div>
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-500">
-                      Quality: 0 Layout Breaks (320px–1920px)
+                      Target Metric: Bot Booking Drop (%) &amp; Human Challenge/Block Rate (%)
                     </div>
                   </div>
                 </div>
@@ -430,128 +470,278 @@ export const About: React.FC = () => {
           {activeId === "system-architecture" && (
             <div className="space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-sm border border-slate-200/90 dark:border-slate-800 space-y-8">
-                <div className="space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                    High-Level Design
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-black text-[#0b2144] dark:text-white">
-                    End-to-End Behavioral Telemetry & Execution Flow
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Labeled components illustrate the top-to-bottom and left-to-right flow from user input to ticket issuance:
-                  </p>
+                {/* Header & Legend */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#f95c19]">
+                      Visual System Flowchart
+                    </span>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-black text-[#0b2144] dark:text-white">
+                      End-to-End Architecture &amp; Dataflow Diagram
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Completed
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-xs font-bold">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      Pending
+                    </span>
+                  </div>
                 </div>
 
-                {/* High-level Interactive Flow Diagram */}
-                <div className="p-5 sm:p-7 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                  <div className="flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-2">
-                    {/* Step 1 */}
-                    <div className="w-full lg:w-1/6 p-4 rounded-xl bg-[#0b2144] text-white text-center shadow-xs flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-orange-400 tracking-wider">Step 1</span>
-                      <span className="font-extrabold text-xs sm:text-sm">User</span>
-                      <span className="text-[10px] text-slate-300 mt-0.5">Traveler / Browser</span>
-                      <span className="mt-2 text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
-                        Implemented
+                {/* FLOWCHART 1: COMPLETED BOOKING, DATABASE & RAILRADAR CACHE FLOW */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#0b2144] dark:text-white flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      1. Completed Frontend, Database &amp; RailRadar API Cache Flow
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                      Completed &amp; Active
+                    </span>
+                  </div>
+
+                  {/* Horizontal Flowchart Row */}
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
+                    {/* Node 1: React Frontend */}
+                    <div className="flex-1 p-4 rounded-xl bg-[#0b2144] text-white text-center space-y-1.5 shadow-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 block">
+                        React 18 + TS + Vite
                       </span>
+                      <div className="font-extrabold text-sm">Frontend UI</div>
+                      <div className="flex flex-wrap justify-center gap-1 pt-1">
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">Station Search</span>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">IST Date Bar</span>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">Filter &amp; Sort</span>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">Email OTP</span>
+                      </div>
                     </div>
 
-                    <div className="text-orange-500 flex items-center justify-center py-1 lg:py-0">
-                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    {/* Arrow 1 */}
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">REST JSON</span>
                       <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                      <span className="text-[9px] font-mono text-slate-400">/api/trains/search</span>
                     </div>
 
-                    {/* Step 2 */}
-                    <div className="w-full lg:w-1/6 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-xs flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-[#0b2144] dark:text-sky-300 tracking-wider">Step 2</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">RailSecurix Frontend</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">React SPA + UI</span>
-                      <span className="mt-2 text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
-                        Implemented
+                    {/* Node 2: Flask Backend */}
+                    <div className="flex-1 p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-emerald-500/70 text-center space-y-1.5 shadow-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
+                        Python Flask API
                       </span>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">Backend Controller</div>
+                      <div className="flex flex-wrap justify-center gap-1 pt-1 text-slate-600 dark:text-slate-300">
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">run_days Filter</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">5m Seat Lock</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">PNR &amp; PDF</span>
+                      </div>
                     </div>
 
-                    <div className="text-orange-500 flex items-center justify-center py-1 lg:py-0">
-                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    {/* Arrow 2 */}
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-emerald-600">Cache Hit</span>
                       <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                      <span className="text-[9px] font-mono text-slate-400">0 API Calls</span>
                     </div>
 
-                    {/* Step 3 */}
-                    <div className="w-full lg:w-1/6 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-xs flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-[#0b2144] dark:text-sky-300 tracking-wider">Step 3</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">Behavioural Signals</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Timing & Trajectory</span>
-                      <span className="mt-2 text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
-                        Implemented
+                    {/* Node 3: SQLite Database */}
+                    <div className="flex-1 p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-emerald-500/70 text-center space-y-1.5 shadow-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">
+                        SQLite3 Local DB
                       </span>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">railsecurix.db</div>
+                      <div className="flex flex-wrap justify-center gap-1 pt-1 text-slate-600 dark:text-slate-300">
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">route_cache</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">trains &amp; stations</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">users &amp; bookings</span>
+                      </div>
                     </div>
 
-                    <div className="text-orange-500 flex items-center justify-center py-1 lg:py-0">
-                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    {/* Arrow 3 */}
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-[#f95c19]">Cache Miss</span>
                       <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                      <span className="text-[9px] font-mono text-slate-400">Once / 7 Days</span>
                     </div>
 
-                    {/* Step 4 */}
-                    <div className="w-full lg:w-1/6 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center shadow-xs flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-[#0b2144] dark:text-sky-300 tracking-wider">Step 4</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">Risk Analysis</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Behavioral Detection</span>
-                      <span className="mt-2 text-[9px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
-                        Implemented
+                    {/* Node 4: RailRadar API */}
+                    <div className="flex-1 p-4 rounded-xl bg-[#0b2144] text-white text-center space-y-1.5 shadow-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 block">
+                        External API (.env)
                       </span>
+                      <div className="font-extrabold text-sm">RailRadar API</div>
+                      <div className="flex flex-wrap justify-center gap-1 pt-1">
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">RAILRADAR_API_KEY</span>
+                        <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">Weekly Sync</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FLOWCHART 2: NEXT STAGE — AUTOMATED BOT SCRIPT FLOW */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#0b2144] dark:text-white flex items-center gap-2">
+                      <Bot className="w-4 h-4 text-[#f95c19]" />
+                      2. Next Stage: Automated Bot Script Flow (How Bots Will Be Built)
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      Pending &bull; Stage 2
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
+                    {/* Bot Engine */}
+                    <div className="flex-1 p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-dashed border-amber-400 dark:border-amber-700 text-center space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#f95c19] block">
+                        Python Automation
+                      </span>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                        Playwright / Selenium
+                      </div>
+                      <span className="text-[11px] text-slate-500 block">Launches headless browser sessions</span>
                     </div>
 
-                    <div className="text-orange-500 flex items-center justify-center py-1 lg:py-0">
-                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500">Simulates</span>
                       <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
                     </div>
 
-                    {/* Step 5 */}
-                    <div className="w-full lg:w-1/6 p-4 rounded-xl bg-[#0b2144] text-white text-center shadow-xs flex flex-col items-center">
-                      <span className="text-[10px] uppercase font-bold text-orange-400 tracking-wider">Step 5</span>
-                      <span className="font-extrabold text-xs sm:text-sm">Booking Decision</span>
-                      <span className="text-[10px] text-slate-300 mt-0.5">Direct Confirm / Step-up</span>
-                      <span className="mt-2 text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-1.5 py-0.5 rounded font-bold">
-                        Implemented
+                    {/* Bot Tier 1 & Tier 2 */}
+                    <div className="flex-1 p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-dashed border-amber-400 dark:border-amber-700 text-center space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 block">
+                        2 Bot Attack Tiers
+                      </span>
+                      <div className="flex flex-col sm:flex-row justify-center gap-1.5 text-[11px] font-bold">
+                        <span className="bg-orange-50 dark:bg-orange-950/40 text-[#f95c19] border border-orange-200 dark:border-orange-800 px-2.5 py-1 rounded-lg">
+                          Tier 1: Fast Autofill (&lt;2s)
+                        </span>
+                        <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-lg">
+                          Tier 2: Human-Mimicking
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500">Attacks</span>
+                      <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    </div>
+
+                    {/* Target Booking Flow */}
+                    <div className="flex-1 p-4 rounded-xl bg-[#0b2144] text-white text-center space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 block">
+                        Target Portal
+                      </span>
+                      <div className="font-extrabold text-sm">Booking Checkout Flow</div>
+                      <span className="text-[10px] text-slate-300 font-mono block">
+                        /search &rarr; /passenger &rarr; /payment
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Supporting Subsystem Grid */}
-                  <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                      <div className="flex items-center gap-2 font-bold text-xs text-[#0b2144] dark:text-slate-200">
-                        <Server className="w-4 h-4 text-blue-500" /> Flask REST Backend
+                {/* FLOWCHART 3: FINAL STAGE — AI BOT DETECTION & GATEKEEPER OVER USER */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#0b2144] dark:text-white flex items-center gap-2">
+                      <BrainCircuit className="w-4 h-4 text-blue-600" />
+                      3. Final Stage: AI Bot Detection &amp; How It Is Called Over the User
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      Pending &bull; Stage 3
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2">
+                    {/* Step 1: JS Listeners */}
+                    <div className="flex-1 p-4 rounded-xl bg-white dark:bg-slate-900 border-2 border-dashed border-amber-400 dark:border-amber-700 text-center space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
+                        Browser Sensor
+                      </span>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">JS Event Listeners</div>
+                      <div className="flex flex-wrap justify-center gap-1">
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Mouse Curve</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Key Timing</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Dwell Speed</span>
                       </div>
-                      <p className="text-[11px] text-slate-500">
-                        Central session routing, OTP email dispatcher, risk-score endpoints, and ticket creation.
-                      </p>
-                      <span className="inline-block text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded mt-1">
-                        Implemented
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500">On &ldquo;Book&rdquo; Click</span>
+                      <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
+                    </div>
+
+                    {/* Step 2: ML Classifier */}
+                    <div className="flex-1 p-4 rounded-xl bg-[#0b2144] text-white text-center space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400 block">
+                        Scikit-Learn Model
+                      </span>
+                      <div className="font-extrabold text-sm">Session ML Classifier</div>
+                      <span className="text-[10px] bg-white/10 px-2.5 py-0.5 rounded inline-block font-mono">
+                        Outputs Risk Score P(bot)
                       </span>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-1">
-                      <div className="flex items-center gap-2 font-bold text-xs text-[#0b2144] dark:text-slate-200">
-                        <Database className="w-4 h-4 text-indigo-500" /> SQLite Persistence Engine
-                      </div>
-                      <p className="text-[11px] text-slate-500">
-                        Persistent tables for users, stations, train schedules, temporary seat locks, and booking logs.
-                      </p>
-                      <span className="inline-block text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded mt-1">
-                        Implemented
-                      </span>
+                    <div className="flex flex-col items-center justify-center px-1 py-1 text-[#f95c19] shrink-0">
+                      <span className="text-[10px] font-bold text-slate-500">Gatekeeper</span>
+                      <ArrowRight className="w-5 h-5 hidden lg:block" />
+                      <ArrowDown className="w-5 h-5 lg:hidden" />
                     </div>
 
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-dashed border-amber-300 dark:border-amber-800 space-y-1">
-                      <div className="flex items-center gap-2 font-bold text-xs text-amber-700 dark:text-amber-400">
-                        <ExternalLink className="w-4 h-4" /> Live IRCTC Production Gateway
+                    {/* Step 3: 3 Branching Decisions Over User */}
+                    <div className="flex-1 grid grid-cols-1 gap-2">
+                      <div className="px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs">
+                        <span className="font-extrabold text-emerald-800 dark:text-emerald-300">Low (&lt;0.35)</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">&rarr; Direct Booking</span>
                       </div>
-                      <p className="text-[11px] text-slate-500">
-                        National Indian Railways ticketing APIs, PRS payment gateways, and hardware security modules.
-                      </p>
-                      <span className="inline-block text-[9px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded mt-1">
-                        Planned Scope
+                      <div className="px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-between text-xs">
+                        <span className="font-extrabold text-amber-800 dark:text-amber-300">Med (0.35–0.70)</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">&rarr; Challenge Modal</span>
+                      </div>
+                      <div className="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center justify-between text-xs">
+                        <span className="font-extrabold text-rose-800 dark:text-rose-300">High (&ge;0.70)</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">&rarr; Block Bot (403)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Concise Explanation of the 3 Gatekeeper Risk Outcomes */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-200/80 dark:border-slate-700/80">
+                    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 space-y-1">
+                      <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 block">
+                        1. Low Risk (&lt; 0.35) &mdash; Direct Booking
                       </span>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Normal human interaction. <strong>No pop-up appears at all</strong>&mdash;the passenger walks straight through and books their ticket immediately with zero delay.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 space-y-1">
+                      <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400 block">
+                        2. Med Risk (0.35–0.70) &mdash; Challenge Modal
+                      </span>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        If the AI is unsure (e.g., a fast human using autofill), a small <strong>pop-up window (Challenge Modal)</strong> asks for a quick 2-second confirmation&mdash;acting as a safety net so real people are never wrongly blocked while scripts get stuck.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800/60 space-y-1">
+                      <span className="text-xs font-extrabold text-rose-700 dark:text-rose-400 block">
+                        3. High Risk (&ge; 0.70) &mdash; Block Bot (403)
+                      </span>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Definite automated bot behaviour. The system blocks the request immediately (<code>403 Forbidden</code>) without showing a pop-up and prevents seat hoarding.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -568,38 +758,88 @@ export const About: React.FC = () => {
                     Roadmap & Deliverables
                   </span>
                   <h3 className="text-lg sm:text-xl font-black text-[#0b2144] dark:text-white">
-                    Deliverables Prepared for the Next Project Milestone
+                    Project Milestones & Current Progress
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                    Exactly 2 concrete milestone targets prioritized for academic demonstration:
+                    At the current stage, we have built the railway booking website. The automated bot simulation scripts and AI-based bot detection system are queued across the next three milestones:
                   </p>
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-start gap-4">
-                    <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
-                        Milestone 1: Workflow Validation
+                {/* Current Completed Foundation */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/50 flex items-start gap-4">
+                  <div className="p-2.5 rounded-xl bg-emerald-600 text-white shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                        Current Stage: Railway Booking Website
                       </span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                        Completed
+                      </span>
+                    </div>
+                    <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
+                      Designed and implemented the complete railway ticket booking website with dynamic train search, date navigation, filtering, sorting, seat reservation, and user authentication.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3 Pending Milestones */}
+                <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-start gap-4">
+                    <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950 text-[#f95c19] shrink-0 mt-0.5">
+                      <Bot className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#f95c19]">
+                          Milestone 1: Automated Bot Simulation
+                        </span>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          Pending
+                        </span>
+                      </div>
                       <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
-                        Complete integration and validation of the behavioural detection and risk-analysis workflow against the capabilities currently implemented in the project.
+                        Develop automation scripts to simulate railway ticket booking activities, replicating bot-like behaviour on the existing booking website.
                       </p>
                     </div>
                   </div>
 
                   <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-start gap-4">
-                    <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950 text-[#f95c19] shrink-0 mt-0.5">
-                      <Clock className="w-5 h-5" />
+                    <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                      <Activity className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-black uppercase tracking-wider text-[#f95c19] block">
-                        Milestone 2: UI & Prototype Testing
-                      </span>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                          Milestone 2: Behavioural Data Collection
+                        </span>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          Pending
+                        </span>
+                      </div>
                       <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
-                        Conduct responsive UI, navigation, and functional testing, then document the results and prepare the prototype for the next MDC demonstration.
+                        Collect and analyse interaction data from both genuine human users and automated scripts to identify differences in their behavioural patterns.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-start gap-4">
+                    <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5">
+                      <BrainCircuit className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                          Milestone 3: AI-Based Bot Detection & Integration
+                        </span>
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          Pending
+                        </span>
+                      </div>
+                      <p className="text-sm sm:text-base text-slate-800 dark:text-slate-200 leading-relaxed font-semibold">
+                        Develop a machine learning model to detect automated activity, assign risk scores and integrate the detection system into the booking website.
                       </p>
                     </div>
                   </div>
