@@ -95,8 +95,15 @@ export const SearchForm: React.FC = () => {
 
   // Fetch stations dynamically on search input with debounce
   useEffect(() => {
-    const activeQuery = (fromStation || toStation || "").trim();
-    if (!activeQuery || activeQuery.includes(" - ")) return;
+    const fTrim = (fromStation || "").trim();
+    const tTrim = (toStation || "").trim();
+    const activeQuery =
+      fTrim && !fTrim.includes(" - ")
+        ? fTrim
+        : tTrim && !tTrim.includes(" - ")
+        ? tTrim
+        : "";
+    if (!activeQuery) return;
 
     const timer = setTimeout(() => {
       api.getStations(activeQuery)
@@ -155,9 +162,18 @@ export const SearchForm: React.FC = () => {
   const filterStations = (query: string) => {
     const q = query.toUpperCase().trim();
     if (!q) return stations.slice(0, 15);
-    return stations.filter(
-      (st) => st.name.includes(q) || st.code.includes(q) || st.full.includes(q)
-    );
+    const matched: { st: (typeof stations)[number]; rank: number }[] = [];
+    for (const st of stations) {
+      if (st.code.includes(q) || st.name.includes(q) || st.full.includes(q)) {
+        let rank = 3;
+        if (st.code === q) rank = 0;
+        else if (st.code.startsWith(q)) rank = 1;
+        else if (st.name.startsWith(q)) rank = 2;
+        matched.push({ st, rank });
+      }
+    }
+    matched.sort((a, b) => a.rank - b.rank);
+    return matched.slice(0, 50).map((m) => m.st);
   };
 
   const extractStationKey = (val: string) => {
