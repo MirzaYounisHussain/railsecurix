@@ -73,14 +73,15 @@ export default async function handler(req, res) {
       const sessionToken = extractSessionToken(req);
       const supabase = getSupabaseClient();
       if (supabase && sessionToken) {
-        await supabase
-          .from('active_sessions')
-          .update({
-            risk_score: 14,
-            security_action: 'CHALLENGE_PASSED (Low Risk)',
-          })
-          .eq('session_token', sessionToken)
-          .catch(() => {});
+        try {
+          await supabase
+            .from('active_sessions')
+            .update({
+              risk_score: 14,
+              security_action: 'CHALLENGE_PASSED (Low Risk)',
+            })
+            .eq('session_token', sessionToken);
+        } catch {}
       }
 
       return res.status(200).json({

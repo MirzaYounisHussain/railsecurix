@@ -466,15 +466,17 @@ export default async function handler(req, res) {
         const user = { id: 1, username: 'testuser', fullName: 'Test User', email: 'testuser@railsecurix.com', role: 'user' };
         const sessionToken = crypto.randomUUID();
         if (supabase) {
-          await supabase.from('active_sessions').insert({
-            session_token: sessionToken,
-            user_id: user.id,
-            username: user.username,
-            role: user.role,
-            risk_score: 14,
-            security_action: 'ALLOW (Normal Access)',
-            expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
-          }).catch(() => {});
+          try {
+            await supabase.from('active_sessions').insert({
+              session_token: sessionToken,
+              user_id: user.id,
+              username: user.username,
+              role: user.role,
+              risk_score: 14,
+              security_action: 'ALLOW (Normal Access)',
+              expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
+            });
+          } catch {}
         }
         setSessionCookie(res, sessionToken);
         return res.status(200).json({ success: true, user });
@@ -484,15 +486,17 @@ export default async function handler(req, res) {
         const user = { id: 99, username: 'admin', fullName: 'Administrator', email: 'admin@railsecurix.com', role: 'admin' };
         const sessionToken = crypto.randomUUID();
         if (supabase) {
-          await supabase.from('active_sessions').insert({
-            session_token: sessionToken,
-            user_id: user.id,
-            username: user.username,
-            role: user.role,
-            risk_score: 14,
-            security_action: 'ALLOW (Normal Access)',
-            expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
-          }).catch(() => {});
+          try {
+            await supabase.from('active_sessions').insert({
+              session_token: sessionToken,
+              user_id: user.id,
+              username: user.username,
+              role: user.role,
+              risk_score: 14,
+              security_action: 'ALLOW (Normal Access)',
+              expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
+            });
+          } catch {}
         }
         setSessionCookie(res, sessionToken);
         return res.status(200).json({ success: true, user });
@@ -557,11 +561,12 @@ export default async function handler(req, res) {
     if (action === 'logout') {
       const sessionToken = extractSessionToken(req);
       if (sessionToken && supabase) {
-        await supabase
-          .from('active_sessions')
-          .update({ is_revoked: true })
-          .eq('session_token', sessionToken)
-          .catch(() => {});
+        try {
+          await supabase
+            .from('active_sessions')
+            .update({ is_revoked: true })
+            .eq('session_token', sessionToken);
+        } catch {}
       }
       clearSessionCookie(res);
       return res.status(200).json({ success: true, message: 'Successfully signed out' });
