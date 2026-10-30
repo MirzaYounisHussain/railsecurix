@@ -47,6 +47,7 @@ from database.db import (
     get_station_by_code,
     add_station,
     delete_station,
+    search_stations,
     get_all_trains,
     get_train_by_id,
     search_trains_db,
@@ -56,6 +57,14 @@ from database.db import (
 )
 from backend.email_service import generate_secure_otp, send_otp_email
 from backend.auth_utils import login_required, admin_required
+from backend.railradar_service import (
+    sync_stations_weekly,
+    sync_trains_weekly,
+    get_railradar_sync_status,
+    start_weekly_background_scheduler,
+    get_or_sync_trains_between,
+    resolve_station_code,
+)
 
 FRONTEND_TEMPLATES = os.path.join(BASE_DIR, 'frontend', 'templates')
 FRONTEND_STATIC = os.path.join(BASE_DIR, 'frontend', 'static')
@@ -320,6 +329,10 @@ def create_app():
     # Initialize SQLite database and seed defaults
     with app.app_context():
         init_db()
+
+    # Start non-blocking weekly sync scheduler in non-testing mode
+    if not app.config.get('TESTING'):
+        start_weekly_background_scheduler()
 
     # In-memory session telemetry cache for real-time aggregation
     session_telemetry_cache = {}
@@ -1002,7 +1015,12 @@ def create_app():
     # --- Stations API ---
     @app.route('/api/stations', methods=['GET'])
     def api_get_stations():
-        stations = get_all_stations()
+        q = request.args.get('q', '').strip()
+        limit = request.args.get('limit', 100, type=int)
+        if q:
+            stations = search_stations(q, limit=limit)
+        else:
+            stations = get_all_stations()
         return jsonify([
             {
                 'id': str(s['id']),
@@ -1013,6 +1031,25 @@ def create_app():
             }
             for s in stations
         ])
+
+    # --- RailRadar Weekly Synchronization Endpoints ---
+    @app.route('/api/sync/status', methods=['GET'])
+    def api_sync_status():
+        """Retrieve 7-day TTL cache status and metrics for stations and trains."""
+        return jsonify(get_railradar_sync_status())
+
+    @app.route('/api/sync/trigger', methods=['POST'])
+    def api_sync_trigger():
+        """Manually trigger sync (refreshes from RailRadar API if due or forced)."""
+        force = request.args.get('force', 'true').lower() in ('true', '1', 'yes')
+        stn_res = sync_stations_weekly(force=force)
+        trn_res = sync_trains_weekly(force=force)
+        return jsonify({
+            'success': True,
+            'stations': stn_res,
+            'trains': trn_res,
+            'status': get_railradar_sync_status()
+        })
 
     @app.route('/api/stations', methods=['POST'])
     @admin_required
@@ -1044,23 +1081,43 @@ def create_app():
         quota = request.args.get('quota', 'GN')
 
         # Prevent same source and destination station search
-        def extract_station_key(val):
-            if not val:
-                return ""
-            parts = val.split(" - ")
-            return parts[-1].strip().upper() if len(parts) > 1 else val.strip().upper()
+        src_code = resolve_station_code(source)
+        dest_code = resolve_station_code(dest)
 
-        src_key = extract_station_key(source)
-        dest_key = extract_station_key(dest)
-
-        if src_key and dest_key and src_key == dest_key:
+        if src_code and dest_code and src_code == dest_code:
             return jsonify({
                 "error": "Source and destination cannot be the same."
             }), 400
 
-        matching = search_trains_db(source, dest, travel_date)
-        results = []
+        # Dynamic Route Retrieval (7-Day TTL Cache: SQLite first, RailRadar on miss)
+        matching = []
+        if src_code and dest_code:
+            matching = get_or_sync_trains_between(src_code, dest_code)
+
+        # Fallback to general database filter if route returned empty or for generic browse
+        if not matching:
+            matching = search_trains_db(source, dest, travel_date)
+
+        # Filter trains by day of week if travel_date is valid
+        day_names_3 = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+        cur_day_3 = None
+        try:
+            dt = datetime.strptime(travel_date, '%Y-%m-%d')
+            cur_day_3 = day_names_3[dt.weekday()]
+        except Exception:
+            pass
+
+        applicable_trains = []
         for t in matching:
+            run_days = t.get('run_days')
+            if run_days and isinstance(run_days, list) and cur_day_3:
+                clean_days = [str(d).strip().lower() for d in run_days]
+                if cur_day_3 not in clean_days and len(clean_days) < 7:
+                    continue
+            applicable_trains.append(t)
+
+        results = []
+        for t in applicable_trains:
             avail_matrix = []
             for c_code in t['available_classes']:
                 avail = get_simulated_availability(t, c_code, travel_date, quota)

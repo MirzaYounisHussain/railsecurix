@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import QuickServicesModal from "./QuickServicesModal";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { api } from "@/services/api";
 
 const POPULAR_STATIONS = [
   { name: "NEW DELHI", code: "NDLS", full: "NEW DELHI - NDLS" },
@@ -71,6 +72,55 @@ export const SearchForm: React.FC = () => {
   const [isSwapping, setIsSwapping] = useState(false);
   const [quickServiceModal, setQuickServiceModal] = useState<"pnr" | "track" | null>(null);
 
+  // Dynamic Station Catalog from Local Database
+  const [stations, setStations] = useState(POPULAR_STATIONS);
+
+  useEffect(() => {
+    // Preload all available stations from local database
+    api.getStations()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((s) => ({
+            name: s.stationName.toUpperCase(),
+            code: s.stationCode.toUpperCase(),
+            full: `${s.stationName.toUpperCase()} - ${s.stationCode.toUpperCase()}`,
+          }));
+          setStations(mapped);
+        }
+      })
+      .catch((err) => {
+        console.warn("Using fallback station list:", err);
+      });
+  }, []);
+
+  // Fetch stations dynamically on search input with debounce
+  useEffect(() => {
+    const activeQuery = (fromStation || toStation || "").trim();
+    if (!activeQuery || activeQuery.includes(" - ")) return;
+
+    const timer = setTimeout(() => {
+      api.getStations(activeQuery)
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setStations((prev) => {
+              const existingCodes = new Set(prev.map((p) => p.code));
+              const newItems = data
+                .filter((s) => !existingCodes.has(s.stationCode.toUpperCase()))
+                .map((s) => ({
+                  name: s.stationName.toUpperCase(),
+                  code: s.stationCode.toUpperCase(),
+                  full: `${s.stationName.toUpperCase()} - ${s.stationCode.toUpperCase()}`,
+                }));
+              return [...prev, ...newItems];
+            });
+          }
+        })
+        .catch(() => {});
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [fromStation, toStation]);
+
   // Calendar month state for custom date picker
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const [y, m, d] = getTodayDate().split("-").map(Number);
@@ -104,8 +154,8 @@ export const SearchForm: React.FC = () => {
 
   const filterStations = (query: string) => {
     const q = query.toUpperCase().trim();
-    if (!q) return POPULAR_STATIONS;
-    return POPULAR_STATIONS.filter(
+    if (!q) return stations.slice(0, 15);
+    return stations.filter(
       (st) => st.name.includes(q) || st.code.includes(q) || st.full.includes(q)
     );
   };

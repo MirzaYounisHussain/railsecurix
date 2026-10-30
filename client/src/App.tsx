@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
 import Home from "@/pages/Home";
+import About from "@/pages/About";
 import SearchResults from "@/pages/SearchResults";
 import PassengerDetails from "@/pages/PassengerDetails";
 import Payment from "@/pages/Payment";
@@ -42,6 +43,8 @@ const AppRoutes = () => (
     <main className="flex-1">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/about/:sectionId" element={<About />} />
         <Route path="/search" element={<SearchResults />} />
         <Route path="/passenger-details" element={<ProtectedRoute><PassengerDetails /></ProtectedRoute>} />
         <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />

@@ -25,17 +25,19 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { name: "HOME", path: "/" },
     { name: "CONTACT US", path: "#contact", action: () => setContactModalOpen(true) },
+    { name: "ABOUT", path: "/about" },
   ];
 
   const isActive = (path: string) => {
     if (path === "/" && location.pathname === "/") return true;
     if (path === "/search" && location.pathname === "/search") return true;
+    if (path === "/about" && location.pathname.startsWith("/about")) return true;
     return false;
   };
 
   return (
     <>
-      {/* 1. Top Orange Advisory Bar matching Image 6 */}
+      {/* 1. Top Orange Advisory Bar */}
       <AdvisoryBar />
 
       {/* 2. Main Railway Blue Navbar */}
@@ -62,7 +64,7 @@ export const Navbar: React.FC = () => {
               </div>
             </Link>
 
-            {/* Center: Capsule Navigation Bar matching Reference Images 3, 4, 5, 6, 9 */}
+            {/* Center: Capsule Navigation Bar - HOME -> CONTACT US -> ABOUT */}
             <nav className="hidden lg:flex items-center space-x-1 bg-[#122e57] px-3 py-1 rounded-full border border-[#1e467d] shadow-inner">
               {navLinks.map((link) => {
                 const active = isActive(link.path);
@@ -76,7 +78,7 @@ export const Navbar: React.FC = () => {
                         navigate(link.path);
                       }
                     }}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-black tracking-wider transition-all duration-150 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-black tracking-wider transition-all duration-150 cursor-pointer ${
                       active
                         ? "bg-white text-[#0b2144] shadow-xs"
                         : "text-slate-200 hover:text-white hover:bg-white/10"
@@ -94,14 +96,14 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={toggle}
                 aria-label="Toggle theme"
-                className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition"
+                className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer"
                 title={dark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
                 {dark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-200" />}
               </button>
 
               {user ? (
-                /* Authenticated User Pill matching Reference Image 3, 4, 5 */
+                /* Authenticated User Pill */
                 <div className="flex items-center space-x-2">
                   <Link
                     to="/profile"
@@ -123,17 +125,17 @@ export const Navbar: React.FC = () => {
 
                   <button
                     onClick={handleLogout}
-                    className="text-xs text-rose-300 hover:text-rose-200 p-1.5 rounded-full hover:bg-rose-500/20 transition"
+                    className="text-xs text-rose-300 hover:text-rose-200 p-1.5 rounded-full hover:bg-rose-500/20 transition cursor-pointer"
                     title="Logout"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                /* Unauthenticated White Pill "LOGIN" Button matching Image 6 */
+                /* Unauthenticated White Pill "LOGIN" Button */
                 <button
                   onClick={() => setLoginModalOpen(true)}
-                  className="bg-white hover:bg-slate-100 active:scale-95 text-[#0b2144] font-black text-xs sm:text-sm px-6 py-2 rounded-full shadow-sm hover:shadow transition-all duration-150 uppercase tracking-wider"
+                  className="bg-white hover:bg-slate-100 active:scale-95 text-[#0b2144] font-black text-xs sm:text-sm px-6 py-2 rounded-full shadow-sm hover:shadow transition-all duration-150 uppercase tracking-wider cursor-pointer"
                 >
                   LOGIN
                 </button>
@@ -173,26 +175,35 @@ export const Navbar: React.FC = () => {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-[#0d2850] border-t border-[#143261] px-4 pt-3 pb-5 space-y-1.5 shadow-xl">
-            {navLinks.map((link) => (
-              <button
-                key={link.name}
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (link.action) {
-                    link.action();
-                  } else if (link.path.startsWith("/")) {
-                    navigate(link.path);
-                  }
-                }}
-                className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition"
-              >
-                {link.name}
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
+                <button
+                  key={link.name}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (link.action) {
+                      link.action();
+                    } else if (link.path.startsWith("/")) {
+                      navigate(link.path);
+                    }
+                  }}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    active
+                      ? "bg-white text-[#0b2144] shadow-xs"
+                      : "text-slate-200 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {link.name}
+                </button>
+              );
+            })}
 
             {user ? (
               <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-                <span className="text-xs text-slate-300">Signed in as <strong>{user.username}</strong></span>
+                <span className="text-xs text-slate-300">
+                  Signed in as <strong>{user.username}</strong>
+                </span>
                 <button onClick={handleLogout} className="text-xs text-rose-400 font-bold">
                   Logout
                 </button>
@@ -204,7 +215,7 @@ export const Navbar: React.FC = () => {
                     setMobileMenuOpen(false);
                     setLoginModalOpen(true);
                   }}
-                  className="w-full bg-white text-[#0b2144] font-black py-2.5 rounded-full text-center"
+                  className="w-full bg-white text-[#0b2144] font-black py-2.5 rounded-full text-center cursor-pointer"
                 >
                   SIGN IN TO RAILSECURIX
                 </button>
