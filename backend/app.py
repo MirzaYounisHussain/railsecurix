@@ -301,6 +301,7 @@ def _check_user_credentials(user, password):
         return False
     if check_password_hash(user['password_hash'], password):
         return True
+    # In production environments, never permit hardcoded fallback credentials
     is_prod = bool(
         os.environ.get('RAILWAY_ENVIRONMENT')
         or os.environ.get('IS_PRODUCTION')
@@ -308,10 +309,11 @@ def _check_user_credentials(user, password):
     )
     if is_prod:
         return False
+
     u_lower = (user['username'] or '').lower()
-    if u_lower == 'testuser' and password in ('password123', 'TestUser@123', 'testuser', 'testuser123', 'Testuser@123', 'password'):
+    if u_lower == 'testuser' and password in ('password123', 'TestUser@123'):
         return True
-    if u_lower == 'admin' and password in ('Admin@RailSim2026!', 'Admin@123', 'admin123', 'admin', 'Admin@123!'):
+    if u_lower == 'admin' and password in ('Admin@RailSim2026!', 'Admin@123', 'admin123'):
         return True
     return False
 

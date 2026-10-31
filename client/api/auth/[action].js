@@ -355,66 +355,50 @@ export default async function handler(req, res) {
         }
 
         const passwordHash = hashPassword(password);
-        let createdUser = null;
-        if (supabase) {
-          try {
-            const { data: newUser, error: insErr } = await supabase
-              .from('users')
-              .insert({
-                username,
-                full_name: fullName || username,
-                email: effectiveEmail,
-                password_hash: passwordHash,
-                role: 'user',
-              })
-              .select('id, username, full_name, email, role')
-              .single();
-
-            if (!insErr && newUser) {
-              createdUser = {
-                id: newUser.id,
-                username: newUser.username,
-                fullName: newUser.full_name,
-                email: newUser.email,
-                role: newUser.role,
-              };
-            }
-          } catch {}
-        }
-
-        if (!createdUser) {
-          const userId = Date.now();
-          createdUser = {
-            id: userId,
+        const { data: newUser, error: insErr } = await supabase
+          .from('users')
+          .insert({
             username,
-            fullName: fullName || username,
+            full_name: fullName || username,
             email: effectiveEmail,
+            password_hash: passwordHash,
             role: 'user',
-          };
-          memoryUsers.set(username.toLowerCase(), { ...createdUser, passwordHash });
+          })
+          .select('id, username, full_name, email, role')
+          .single();
+
+        if (insErr || !newUser) {
+          return res.status(409).json({
+            success: false,
+            error: 'An account with this username or email already exists.',
+          });
         }
 
         const sessionToken = crypto.randomUUID();
-        if (supabase) {
-          try {
-            await supabase.from('active_sessions').insert({
-              session_token: sessionToken,
-              user_id: createdUser.id,
-              username: createdUser.username,
-              role: createdUser.role,
-              risk_score: 14,
-              security_action: 'ALLOW (Normal Access)',
-              expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
-            });
-          } catch {}
-        }
+        const expiresAt = new Date(Date.now() + 86400 * 1000).toISOString();
 
-        setSessionCookie(res, JSON.stringify(createdUser));
+        await supabase.from('active_sessions').insert({
+          session_token: sessionToken,
+          user_id: newUser.id,
+          username: newUser.username,
+          role: newUser.role,
+          risk_score: 14,
+          security_action: 'ALLOW (Normal Access)',
+          expires_at: expiresAt,
+        });
+
+        setSessionCookie(res, sessionToken);
 
         return res.status(201).json({
           success: true,
           message: 'Account created successfully.',
-          user: createdUser,
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            fullName: newUser.full_name,
+            email: newUser.email,
+            role: newUser.role,
+          },
         });
       } else {
         // Fallback registration with optional verification token
@@ -477,17 +461,10 @@ export default async function handler(req, res) {
 
       const uLower = username.toLowerCase();
 
-      // Check default static test users first (testuser and admin)
-      if (uLower === 'testuser' && (
-        password === 'TestUser@123' ||
-        password === 'testuser' ||
-        password === 'Testuser@123' ||
-        password === 'testuser123' ||
-        password === 'password123' ||
-        password === 'password'
-      )) {
+      // Check default static test users first if unconfigured or matching
+      if (uLower === 'testuser' && (password === 'TestUser@123' || password === 'password123')) {
         const user = { id: 1, username: 'testuser', fullName: 'Test User', email: 'testuser@railsecurix.com', role: 'user' };
-        const sessionToken = 'testuser-session-' + crypto.randomUUID();
+        const sessionToken = crypto.randomUUID();
         if (supabase) {
           try {
             await supabase.from('active_sessions').insert({
@@ -501,19 +478,13 @@ export default async function handler(req, res) {
             });
           } catch {}
         }
-        setSessionCookie(res, JSON.stringify(user));
+        setSessionCookie(res, sessionToken);
         return res.status(200).json({ success: true, user });
       }
 
-      if (uLower === 'admin' && (
-        password === 'Admin@RailSim2026!' ||
-        password === 'Admin@123' ||
-        password === 'admin123' ||
-        password === 'admin' ||
-        password === 'Admin@123!'
-      )) {
+      if (uLower === 'admin' && (password === 'Admin@RailSim2026!' || password === 'Admin@123' || password === 'admin123')) {
         const user = { id: 99, username: 'admin', fullName: 'Administrator', email: 'admin@railsecurix.com', role: 'admin' };
-        const sessionToken = 'admin-session-' + crypto.randomUUID();
+        const sessionToken = crypto.randomUUID();
         if (supabase) {
           try {
             await supabase.from('active_sessions').insert({
@@ -527,24 +498,8 @@ export default async function handler(req, res) {
             });
           } catch {}
         }
-        setSessionCookie(res, JSON.stringify(user));
+        setSessionCookie(res, sessionToken);
         return res.status(200).json({ success: true, user });
-      }
-
-      // Check in-memory registered users (for serverless sessions)
-      if (memoryUsers.has(uLower)) {
-        const memUser = memoryUsers.get(uLower);
-        if (memUser && verifyPassword(password, memUser.passwordHash)) {
-          const user = {
-            id: memUser.id,
-            username: memUser.username,
-            fullName: memUser.fullName,
-            email: memUser.email,
-            role: memUser.role || 'user',
-          };
-          setSessionCookie(res, JSON.stringify(user));
-          return res.status(200).json({ success: true, user });
-        }
       }
 
       // Check database credentials
