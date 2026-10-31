@@ -5,7 +5,13 @@
  * compatible with Python/Werkzeug, Brevo transactional email delivery, and session management.
  */
 
-import { createClient } from '@supabase/supabase-js';
+let createClient = null;
+try {
+  const supabaseMod = await import('@supabase/supabase-js');
+  createClient = supabaseMod.createClient;
+} catch {
+  createClient = null;
+}
 import crypto from 'node:crypto';
 
 export const SUPABASE_DEFAULT_URL = 'https://siregnigyxceylxbzzow.supabase.co';
@@ -41,7 +47,7 @@ export function isSupabaseConfigured() {
 let _supabaseClient = null;
 
 export function getSupabaseClient() {
-  if (!isSupabaseConfigured()) {
+  if (!createClient || !isSupabaseConfigured()) {
     return null;
   }
   if (!_supabaseClient) {

@@ -108,7 +108,7 @@ export const api = {
     username: string;
     password: string;
     fullName: string;
-    email: string;
+    email?: string;
     confirmPassword?: string;
     verificationToken?: string;
   }): Promise<{ success: boolean; user: UserProfile }> {
