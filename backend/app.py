@@ -23,6 +23,7 @@ if BASE_DIR not in sys.path:
 
 from dotenv import load_dotenv
 load_dotenv()
+load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
 
 from database.db import (
     init_db,
@@ -819,8 +820,9 @@ def create_app():
         })
 
     @app.route('/api/auth/send-otp', methods=['POST'])
+    @app.route('/api/auth/resend-otp', methods=['POST'])
     def api_auth_send_otp():
-        data = request.get_json(silent=True) or {}
+        data = request.get_json(silent=True) or request.form or {}
         username = (data.get('username') or '').strip()
         email = (data.get('email') or '').strip().lower()
 
@@ -855,25 +857,31 @@ def create_app():
                     'cooldownRemaining': remaining
                 }), 429
 
+        # Refresh environment from .env and .env.local before delivery check
+        load_dotenv(os.path.join(BASE_DIR, '.env'))
+        load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
+
         otp = generate_secure_otp(6)
         store_email_otp(email, otp, purpose='registration', expires_in_seconds=300)
         delivery_res = send_otp_email(email, otp, purpose='registration')
 
         provider = delivery_res.get('provider', 'email')
         delivered = delivery_res.get('delivered', False)
-        
-        # When explicit provider failed
+        configured_key = (os.environ.get("BREVO_API_KEY") or os.getenv("BREVO_API_KEY") or "").strip().strip('"').strip("'")
+        is_production = os.environ.get("FLASK_ENV") == "production" or not app.debug
+
+        # When delivery provider failed
         if delivery_res.get('status') == 'error':
             return jsonify({
                 'success': False,
-                'error': f"Email provider ({provider}) delivery failed: {delivery_res.get('error')}. Please verify server .env settings."
+                'error': f"Email delivery error: {delivery_res.get('error')}. Please verify BREVO_API_KEY in .env.local."
             }), 500
 
         # Construct clear message for user based on delivery provider
         if delivered:
             msg = f"A 6-digit verification code has been dispatched to {email}."
         else:
-            msg = f"A 6-digit verification code was generated (Local Dev Mode). Configure RESEND_API_KEY in .env for live inbox delivery."
+            msg = "A 6-digit verification code was generated (Local Dev Mode). Check your terminal console for the verification code."
 
         resp_payload = {
             'success': True,
@@ -883,17 +891,20 @@ def create_app():
             'cooldownSeconds': 60,
             'expiresInSeconds': 300
         }
-        # Include devOtp only when delivered is False (local dev console fallback)
-        if not delivered:
+        # Strictly guard devOtp: NEVER expose when BREVO_API_KEY is configured or in production
+        if not delivered and not configured_key and not is_production:
             resp_payload['devOtp'] = otp
 
         return jsonify(resp_payload)
 
     @app.route('/api/auth/verify-otp', methods=['POST'])
     def api_auth_verify_otp():
-        data = request.get_json(silent=True) or {}
+        data = request.get_json(silent=True) or request.form or {}
         email = (data.get('email') or '').strip().lower()
         otp = (data.get('otp') or '').strip()
+        username = (data.get('username') or '').strip()
+        password = data.get('password') or ''
+        full_name = (data.get('fullName') or data.get('full_name') or username).strip()
 
         if not email or not otp:
             return jsonify({'success': False, 'error': 'Email and verification code are required'}), 400
@@ -902,11 +913,36 @@ def create_app():
         if not is_valid:
             return jsonify({'success': False, 'error': message}), 400
 
-        return jsonify({
+        user_data = None
+        if username and password:
+            if not check_username_available(username):
+                return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
+            if not check_email_available(email):
+                return jsonify({'success': False, 'error': 'An account with this email address already exists. Please sign in or use a different email.'}), 409
+
+            new_id = create_user(username, password, full_name, email, role='user')
+            if new_id:
+                session['username'] = username
+                session['user_id'] = new_id
+                session['role'] = 'user'
+                session['full_name'] = full_name
+                session['email'] = email
+                user_data = {
+                    'id': new_id,
+                    'username': username,
+                    'fullName': full_name,
+                    'email': email,
+                    'role': 'user'
+                }
+
+        resp = {
             'success': True,
             'message': message,
             'verificationToken': verification_token
-        })
+        }
+        if user_data:
+            resp['user'] = user_data
+        return jsonify(resp)
 
     @app.route('/api/auth/login', methods=['POST'])
     def api_auth_login():
@@ -954,7 +990,20 @@ def create_app():
             full_name = username
 
         # Mandatory case-insensitive uniqueness checks
-        if not check_username_available(username):
+        existing_user = get_user_by_username(username)
+        if existing_user:
+            if session.get('user_id') == existing_user['id']:
+                return jsonify({
+                    'success': True,
+                    'message': 'Account created successfully.',
+                    'user': {
+                        'id': existing_user['id'],
+                        'username': existing_user['username'],
+                        'fullName': existing_user['full_name'],
+                        'email': existing_user['email'],
+                        'role': existing_user['role']
+                    }
+                }), 201
             return jsonify({'success': False, 'error': 'This username is already taken. Please choose another username.'}), 409
 
         if not check_email_available(email):

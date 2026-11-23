@@ -18,8 +18,20 @@ import urllib.request
 import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
 
 logger = logging.getLogger("railsim.email")
+
+def get_brevo_api_key() -> str:
+    """Return sanitized Brevo API key from local environment with quotes and whitespace stripped."""
+    load_dotenv(os.path.join(BASE_DIR, '.env'))
+    load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
+    raw = os.environ.get("BREVO_API_KEY") or os.getenv("BREVO_API_KEY") or ""
+    return raw.strip().strip('"').strip("'").strip()
 
 def generate_secure_otp(length: int = 6) -> str:
     """Generate cryptographically secure numeric OTP."""
@@ -128,8 +140,17 @@ def _send_via_resend(api_key: str, to_email: str, otp: str, purpose: str) -> dic
 def _send_via_brevo(api_key: str, to_email: str, otp: str, purpose: str) -> dict:
     """Send transactional email using Brevo (Sendinblue) v3 API."""
     url = "https://api.brevo.com/v3/smtp/email"
-    sender_email = os.environ.get("BREVO_FROM_EMAIL", "noreply@railsim.express")
-    sender_name = os.environ.get("BREVO_FROM_NAME", "RailSecurix")
+    clean_key = (api_key or "").strip().strip('"').strip("'").strip()
+    sender_email = (
+        os.environ.get("BREVO_SENDER_EMAIL")
+        or os.environ.get("BREVO_FROM_EMAIL")
+        or "mirzayounishussain786@gmail.com"
+    ).strip().strip('"').strip("'")
+    sender_name = (
+        os.environ.get("BREVO_SENDER_NAME")
+        or os.environ.get("BREVO_FROM_NAME")
+        or "RailSecuriX"
+    ).strip().strip('"').strip("'")
     plain_text, html_content = get_email_template(otp, purpose)
     
     payload = {
@@ -141,9 +162,10 @@ def _send_via_brevo(api_key: str, to_email: str, otp: str, purpose: str) -> dict
     }
     
     headers = {
-        "api-key": api_key.strip(),
+        "api-key": clean_key,
         "Content-Type": "application/json",
-        "User-Agent": "RailSecurix/2.0"
+        "Accept": "application/json",
+        "User-Agent": "RailSecuriX/2.0"
     }
     
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
@@ -156,6 +178,10 @@ def _send_via_brevo(api_key: str, to_email: str, otp: str, purpose: str) -> dict
                 "messageId": res_body.get("messageId"),
                 "status": "sent"
             }
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8", errors="replace")
+        logger.error("Brevo API HTTP Error %s: %s", e.code, err_msg)
+        raise RuntimeError(f"Brevo HTTP {e.code}: {err_msg}")
     except Exception as e:
         logger.error("Brevo API error: %s", e)
         raise RuntimeError(f"Brevo delivery failed: {e}")
@@ -206,36 +232,35 @@ def _send_via_smtp(to_email: str, otp: str, purpose: str) -> dict:
 def send_otp_email(to_email: str, otp: str, purpose: str = "registration") -> dict:
     """
     Authoritative email delivery dispatcher.
-    Checks environment for Resend, Brevo, or SMTP configuration.
+    Checks environment for Brevo API, Resend, or SMTP configuration.
     Falls back safely to development server logging if no credentials are configured.
     """
     normalized_email = to_email.strip().lower()
 
-    # 1. Check Resend API
+    # 1. Check Brevo REST HTTP API (primary provider)
+    brevo_key = get_brevo_api_key()
+    if brevo_key:
+        try:
+            return _send_via_brevo(brevo_key, normalized_email, otp, purpose)
+        except Exception as e:
+            logger.warning("Brevo delivery failed (%s).", e)
+            return {
+                "delivered": False,
+                "provider": "brevo",
+                "error": str(e),
+                "status": "error"
+            }
+
+    # 2. Check Resend API
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
     if resend_key:
         try:
             return _send_via_resend(resend_key, normalized_email, otp, purpose)
         except Exception as e:
             logger.warning("Resend delivery failed (%s). Falling back.", e)
-            # If explicit credentials fail, report error rather than silent dev fallback
             return {
                 "delivered": False,
                 "provider": "resend",
-                "error": str(e),
-                "status": "error"
-            }
-
-    # 2. Check Brevo API
-    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
-    if brevo_key:
-        try:
-            return _send_via_brevo(brevo_key, normalized_email, otp, purpose)
-        except Exception as e:
-            logger.warning("Brevo delivery failed (%s). Falling back.", e)
-            return {
-                "delivered": False,
-                "provider": "brevo",
                 "error": str(e),
                 "status": "error"
             }
@@ -261,12 +286,12 @@ def send_otp_email(to_email: str, otp: str, purpose: str = "registration") -> di
     print(f"OTP Code:  {otp}", file=sys.stderr)
     print(f"Purpose:   {purpose}", file=sys.stderr)
     print(f"Expiry:    5 minutes", file=sys.stderr)
-    print(f"Note:      Set RESEND_API_KEY or SMTP credentials in .env for live inbox delivery.", file=sys.stderr)
+    print(f"Note:      Paste your BREVO_API_KEY in .env.local for live inbox delivery.", file=sys.stderr)
     print("=" * 76 + "\n", file=sys.stderr)
 
     return {
         "delivered": False,
         "provider": "development_console",
         "status": "dev_logged",
-        "message": "OTP logged to server terminal for local verification. Set RESEND_API_KEY or SMTP in .env for live inbox dispatch."
+        "message": "OTP logged to server terminal for local verification. Paste BREVO_API_KEY in .env.local for live inbox dispatch."
     }

@@ -93,6 +93,21 @@ export const api = {
     });
   },
 
+  async resendOtp(username: string, email: string): Promise<{
+    success: boolean;
+    message: string;
+    delivered?: boolean;
+    deliveryMethod?: string;
+    devOtp?: string;
+    cooldownSeconds?: number;
+    expiresInSeconds?: number;
+  }> {
+    return request('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ username, email }),
+    });
+  },
+
   async verifyOtp(email: string, otp: string): Promise<{
     success: boolean;
     message: string;

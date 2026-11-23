@@ -13,7 +13,9 @@ from datetime import datetime, timezone, timedelta
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_BASE_DIR, '.env'))
+load_dotenv(os.path.join(_BASE_DIR, '.env.local'), override=True)
 
 def normalize_railway_name(name: str) -> str:
     """Correct common phonetic typos from upstream railway NTES feeds."""

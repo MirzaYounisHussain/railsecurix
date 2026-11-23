@@ -95,9 +95,9 @@ export default async function handler(req, res) {
     }
 
     // ------------------------------------------------------------------------
-    // 2. POST /api/auth/send-otp
+    // 2. POST /api/auth/send-otp & POST /api/auth/resend-otp
     // ------------------------------------------------------------------------
-    if (action === 'send-otp') {
+    if (action === 'send-otp' || action === 'resend-otp') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
       const body = req.body || {};
       const username = (body.username || '').trim();
@@ -135,7 +135,6 @@ export default async function handler(req, res) {
         message: `A 6-digit verification code has been dispatched to ${email}.`,
         delivered: delivery.delivered,
         deliveryMethod: delivery.provider,
-        devOtp: delivery.devOtp,
         cooldownSeconds: 60,
         expiresInSeconds: 300,
       });
