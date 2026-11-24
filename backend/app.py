@@ -842,8 +842,8 @@ def create_app():
         if not check_email_available(email):
             return jsonify({
                 'success': False,
-                'error': 'An account with this email address already exists. Please sign in or use a different email.'
-            }), 409
+                'error': 'Email already registered. Please sign in.'
+            }), 400
 
         # Resend cooldown (60 seconds)
         last_sent = get_last_otp_sent_time(email, purpose='registration')
