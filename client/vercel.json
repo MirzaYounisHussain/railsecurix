@@ -9,6 +9,10 @@
       "destination": "/api/auth/forgot-password-reset"
     },
     {
+      "source": "/api/bookings/pnr/:pnr",
+      "destination": "/api/bookings/pnr"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
