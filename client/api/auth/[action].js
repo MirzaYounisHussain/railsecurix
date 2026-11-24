@@ -108,6 +108,7 @@ export default async function handler(req, res) {
       if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
       const username = (body.username || '').trim();
       const email = (body.email || '').trim().toLowerCase();
+      const password = body.password || '';
 
       if (!username) {
         return res.status(400).json({ success: false, error: 'Username is required' });
@@ -178,8 +179,8 @@ export default async function handler(req, res) {
         res.setHeader('Set-Cookie', `__rail_otp_sig=${otpToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
       } catch {}
 
-      // Dispatch via Brevo REST HTTP API
-      const delivery = await sendOtpBrevo(email, otp, 'registration');
+      // Dispatch via Brevo REST HTTP API with username and password in summary box
+      const delivery = await sendOtpBrevo(email, otp, 'registration', username, password);
       if (delivery.status === 'error') {
         return res.status(500).json({
           success: false,
@@ -194,6 +195,166 @@ export default async function handler(req, res) {
         deliveryMethod: delivery.provider,
         cooldownSeconds: 60,
         expiresInSeconds: 300,
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 2B. POST /api/auth/forgot-password/send-otp
+    // ------------------------------------------------------------------------
+    if (action === 'forgot-password-send-otp' || action === 'forgot-password' || req.url.includes('/forgot-password/send-otp')) {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      const email = (body.email || '').trim().toLowerCase();
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ success: false, error: 'A valid email address is required' });
+      }
+
+      // Step A: Check if email exists in database
+      let user = null;
+      if (email === 'traveler@example.com' || email === 'testuser@railsecurix.com') {
+        user = { username: 'testuser', email };
+      } else if (email === 'admin@railsecurix.com') {
+        user = { username: 'admin', email };
+      } else if (memoryUsers.has(email)) {
+        user = memoryUsers.get(email);
+      } else if (supabase) {
+        try {
+          const { data } = await supabase
+            .from('users')
+            .select('id, username, email')
+            .ilike('email', email)
+            .limit(1);
+          if (data && data.length > 0) {
+            user = data[0];
+          }
+        } catch (dbErr) {
+          console.warn('Supabase email lookup warning:', dbErr);
+        }
+      }
+
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          error: 'This email is not registered. Please check your email or sign up.',
+        });
+      }
+
+      const otp = generateSecureOtp(6);
+      const salt = crypto.randomBytes(16).toString('hex');
+      const otpHash = hashOtp(otp, salt);
+      const expiresAt = new Date(Date.now() + 300 * 1000).toISOString();
+
+      if (supabase) {
+        try {
+          await supabase.from('email_otps').insert({
+            email,
+            otp_hash: otpHash,
+            salt,
+            purpose: 'password_reset',
+            attempts: 0,
+            verified: 0,
+            expires_at: expiresAt,
+          });
+        } catch {}
+      }
+
+      memoryOtps.set(`reset_${email}`, { otpHash, salt, expiresAt: Date.now() + 300 * 1000, attempts: 0 });
+
+      // Dispatch Brevo OTP with registered username
+      const delivery = await sendOtpBrevo(email, otp, 'password_reset', user.username || '');
+      if (delivery.status === 'error') {
+        return res.status(500).json({
+          success: false,
+          error: delivery.error || 'Failed to dispatch password reset verification code.',
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `A 6-digit verification code has been dispatched to ${email}.`,
+        delivered: delivery.delivered,
+        deliveryMethod: delivery.provider,
+        username: user.username,
+        cooldownSeconds: 60,
+        expiresInSeconds: 300,
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // 2C. POST /api/auth/forgot-password/reset
+    // ------------------------------------------------------------------------
+    if (action === 'forgot-password-reset' || req.url.includes('/forgot-password/reset')) {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+      const email = (body.email || '').trim().toLowerCase();
+      const otp = (body.otp || body.resetCode || '').trim();
+      const newPassword = body.newPassword || body.password || '';
+      const confirmPassword = body.confirmPassword || '';
+
+      if (!email) return res.status(400).json({ success: false, error: 'Email address is required.' });
+      if (!otp) return res.status(400).json({ success: false, error: 'Please enter the 6-digit verification OTP.' });
+      if (!newPassword) return res.status(400).json({ success: false, error: 'Please enter your new password.' });
+      if (confirmPassword && newPassword !== confirmPassword) {
+        return res.status(400).json({ success: false, error: 'Passwords do not match.' });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters.' });
+      }
+
+      // Verify OTP from memory or Supabase
+      const mem = memoryOtps.get(`reset_${email}`);
+      let validOtp = false;
+      if (mem && mem.expiresAt > Date.now()) {
+        const expected = hashOtp(otp, mem.salt);
+        if (expected === mem.otpHash) {
+          validOtp = true;
+          memoryOtps.delete(`reset_${email}`);
+        }
+      }
+
+      if (!validOtp && supabase) {
+        try {
+          const { data } = await supabase
+            .from('email_otps')
+            .select('*')
+            .eq('email', email)
+            .eq('purpose', 'password_reset')
+            .eq('verified', 0)
+            .order('id', { ascending: false })
+            .limit(1);
+          if (data && data.length > 0) {
+            const row = data[0];
+            const exp = new Date(row.expires_at).getTime();
+            if (exp > Date.now()) {
+              const expected = hashOtp(otp, row.salt);
+              if (expected === row.otp_hash) {
+                validOtp = true;
+                await supabase.from('email_otps').update({ verified: 1 }).eq('id', row.id);
+              }
+            }
+          }
+        } catch {}
+      }
+
+      if (!validOtp) {
+        return res.status(400).json({ success: false, error: 'Invalid or expired verification code. Please request a new code.' });
+      }
+
+      // Update password
+      const newHash = hashPassword(newPassword);
+      if (supabase) {
+        try {
+          await supabase.from('users').update({ password_hash: newHash }).ilike('email', email);
+        } catch {}
+      }
+      if (memoryUsers.has(email)) {
+        const u = memoryUsers.get(email);
+        u.passwordHash = newHash;
+        memoryUsers.set(email, u);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Password reset successful! You can now log in with your new password.',
       });
     }
 
@@ -588,6 +749,45 @@ export default async function handler(req, res) {
       }
       clearSessionCookie(res);
       return res.status(200).json({ success: true, message: 'Successfully signed out' });
+    }
+
+    // ------------------------------------------------------------------------
+    // 8. PUT / POST /api/auth/profile
+    // ------------------------------------------------------------------------
+    if (action === 'profile') {
+      const sessionToken = extractSessionToken(req);
+      let user = sessionToken ? await resolveUserFromSession(sessionToken) : null;
+      if (!user) {
+        try {
+          const cookieHeader = req.headers.cookie || '';
+          const match = cookieHeader.match(/railsecurix_user=([^;]+)/);
+          if (match) user = JSON.parse(decodeURIComponent(match[1]));
+        } catch {}
+      }
+
+      if (!user) {
+        return res.status(401).json({ success: false, error: 'Unauthorized. Please sign in.' });
+      }
+
+      const updatedUser = {
+        ...user,
+        phone: body.phone !== undefined ? body.phone : user.phone,
+        address: body.address !== undefined ? body.address : user.address,
+        fullName: body.fullName !== undefined ? body.fullName : user.fullName,
+      };
+
+      if (supabase && user.id) {
+        try {
+          await supabase.from('users').update({
+            phone: updatedUser.phone,
+            address: updatedUser.address,
+            full_name: updatedUser.fullName,
+          }).eq('id', user.id);
+        } catch {}
+      }
+
+      setSessionCookie(res, JSON.stringify(updatedUser));
+      return res.status(200).json({ success: true, user: updatedUser, message: 'Profile updated successfully.' });
     }
 
     return res.status(404).json({ success: false, error: `Auth action '${action}' not found.` });

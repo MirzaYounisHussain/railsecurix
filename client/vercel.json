@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/auth/forgot-password/send-otp",
+      "destination": "/api/auth/forgot-password-send-otp"
+    },
+    {
+      "source": "/api/auth/forgot-password/reset",
+      "destination": "/api/auth/forgot-password-reset"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

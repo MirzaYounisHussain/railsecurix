@@ -67,6 +67,14 @@ export default function handler(req, res) {
       return res.status(200).json([]);
     }
 
+    // ------------------------------------------------------------------------
+    // GET /api/bookings/pnr/:pnr
+    // ------------------------------------------------------------------------
+    if (action === 'pnr' || req.url.includes('/bookings/pnr')) {
+      const pnr = req.query?.pnr || (req.url ? req.url.split('/').filter(Boolean).pop() : '');
+      return res.status(404).json({ success: false, error: `PNR ${pnr} not found in database.` });
+    }
+
     return res.status(404).json({ success: false, error: `Booking endpoint '${action}' not found.` });
   } catch (err) {
     console.error('Bookings error:', err);

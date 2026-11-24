@@ -302,6 +302,14 @@ def run_migrations(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stations_city ON stations(city);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_trains_route ON trains(source_code, dest_code);")
 
+    # 6. Ensure users table has phone and address columns
+    cursor = conn.execute("PRAGMA table_info(users);")
+    existing_user_cols = {row['name'] if isinstance(row, sqlite3.Row) else row[1] for row in cursor.fetchall()}
+    if 'phone' not in existing_user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT '';")
+    if 'address' not in existing_user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN address TEXT DEFAULT '';")
+
     conn.commit()
 
 def init_db():
@@ -386,6 +394,32 @@ def get_user_by_id(user_id):
     conn.close()
     return user
 
+def update_user_profile(user_id, phone=None, address=None, full_name=None):
+    """Update profile attributes (phone, address, full_name) for a user record."""
+    if not user_id:
+        return None
+    conn = get_db_connection()
+    updates = []
+    params = []
+    if phone is not None:
+        updates.append("phone = ?")
+        params.append(phone.strip())
+    if address is not None:
+        updates.append("address = ?")
+        params.append(address.strip())
+    if full_name is not None and full_name.strip():
+        updates.append("full_name = ?")
+        params.append(full_name.strip())
+
+    if updates:
+        params.append(user_id)
+        conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
+        conn.commit()
+
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+    return user
+
 def check_username_available(username):
     """Check if a username is available (case-insensitive). Returns True if free."""
     if not username or not username.strip():
@@ -418,6 +452,23 @@ def create_user(username, password, full_name, email, role='user'):
         return new_id
     except sqlite3.IntegrityError:
         return None
+    finally:
+        conn.close()
+
+def update_user_password(email: str, new_password: str) -> bool:
+    """Update password_hash for a user by email (case-insensitive)."""
+    norm_email = (email or '').strip().lower()
+    if not norm_email or not new_password:
+        return False
+    hashed = generate_password_hash(new_password)
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute(
+            'UPDATE users SET password_hash = ? WHERE email = ? COLLATE NOCASE',
+            (hashed, norm_email)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
     finally:
         conn.close()
 
@@ -599,7 +650,7 @@ def save_booking(user_id, booking_data, passengers):
                 booking_data['travel_date'],
                 booking_data.get('quota', 'GN'),
                 booking_data['total_fare'],
-                'CONFIRMED',
+                booking_data.get('status', 'CONFIRMED'),
                 booking_data.get('contact_mobile', '9876543210'),
                 booking_data.get('contact_email', 'traveler@example.com')
             )

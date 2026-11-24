@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Train as TrainType } from "@/services/trainService";
-import { Calendar, Navigation, RotateCw, Info, ChevronRight, Check } from "lucide-react";
+import { RotateCw, Info, ChevronRight, Check } from "lucide-react";
 
 interface ClassDetails {
   code: string;
@@ -119,26 +119,6 @@ export const TrainCard: React.FC<TrainCardProps> = ({
               <span className="font-mono text-xs font-black text-slate-500 dark:text-slate-400">
                 {train.trainNumber}
               </span>
-
-              {/* Train Schedule Pill Button */}
-              <button
-                type="button"
-                onClick={() => onViewSchedule && onViewSchedule(train.trainNumber)}
-                className="px-3 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-blue-600/40 text-blue-700 dark:text-blue-300 text-[11px] font-extrabold rounded-full flex items-center gap-1 shadow-2xs transition"
-              >
-                <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                <span>Train Schedule</span>
-              </button>
-
-              {/* Track Your Train Dark Blue Pill Button */}
-              <button
-                type="button"
-                onClick={() => onTrackTrain && onTrackTrain(train.trainNumber)}
-                className="px-3 py-1 bg-[#1b439b] hover:bg-blue-800 text-white text-[11px] font-extrabold rounded-full flex items-center gap-1 shadow-2xs transition"
-              >
-                <Navigation className="w-3 h-3 text-orange-400" />
-                <span>Track Your Train</span>
-              </button>
             </div>
 
             {/* Train Name */}

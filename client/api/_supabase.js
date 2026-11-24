@@ -142,25 +142,75 @@ export function generateSecureOtp(length = 6) {
   return otp;
 }
 
-export async function sendOtpBrevo(toEmail, otp, purpose = 'registration') {
+export async function sendOtpBrevo(toEmail, otp, purpose = 'registration', username = '', password = '') {
   const apiKey = (process.env.BREVO_API_KEY || '').trim();
   const senderEmail = (
     process.env.BREVO_SENDER_EMAIL ||
     process.env.BREVO_FROM_EMAIL ||
-    'noreply@railsecurix.com'
+    'mirzayounishussain786@gmail.com'
   ).trim();
   const senderName = (
     process.env.BREVO_SENDER_NAME ||
     process.env.BREVO_FROM_NAME ||
-    'RailSecurix'
+    'RailSecuriX'
   ).trim();
 
-  const actionText = purpose === 'registration'
-    ? 'complete your traveler account registration'
-    : 'verify your account';
+  const isRegistration = (purpose === 'registration');
+  const isReset = (purpose === 'password_reset' || purpose === 'reset_password' || purpose === 'forgot_password');
 
-  const plainText = `RailSecurix - Identity Verification\n\n` +
-    `Your one-time verification code (OTP) is: ${otp}\n\n` +
+  let subjectTitle = 'Identity Verification Required';
+  let actionText = 'verify your RailSecurix account';
+  let credentialsBoxHtml = '';
+  let credentialsBoxPlain = '';
+  let subjectPrefix = 'Verification Code';
+
+  if (isRegistration) {
+    subjectTitle = 'Email Verification Required';
+    actionText = 'complete your traveler account registration';
+    subjectPrefix = 'Verification Code';
+    credentialsBoxHtml = `
+      <!-- Account Credentials Summary Box -->
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px 20px; margin: 24px 0;">
+        <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; color: #475569; margin-bottom: 10px;">Your Chosen Account Credentials</span>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="color: #64748b; padding: 5px 0; width: 110px; font-weight: 600;">Username:</td>
+            <td style="color: #0b2144; font-weight: 700; font-family: monospace; font-size: 14px;">${username || '—'}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b; padding: 5px 0; width: 110px; font-weight: 600;">Password:</td>
+            <td style="color: #0b2144; font-weight: 700; font-family: monospace; font-size: 14px;">${password || '—'}</td>
+          </tr>
+        </table>
+        <span style="display: block; font-size: 11px; color: #94a3b8; margin-top: 8px;">Please save these credentials safely. You will use them to sign in after verification.</span>
+      </div>`;
+    credentialsBoxPlain = `\nYour Chosen Account Credentials:\n- Username: ${username || '—'}\n- Password: ${password || '—'}\n`;
+  } else if (isReset) {
+    subjectTitle = 'Password Reset Verification';
+    actionText = 'reset your RailSecurix account password';
+    subjectPrefix = 'Password Reset Code';
+    credentialsBoxHtml = `
+      <!-- Registered Account Details Box -->
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px 20px; margin: 24px 0;">
+        <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; color: #475569; margin-bottom: 10px;">Registered Account Details</span>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="color: #64748b; padding: 5px 0; width: 110px; font-weight: 600;">Username:</td>
+            <td style="color: #0b2144; font-weight: 700; font-family: monospace; font-size: 14px;">${username || '—'}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b; padding: 5px 0; width: 110px; font-weight: 600;">Registered Email:</td>
+            <td style="color: #0b2144; font-weight: 700; font-size: 13px;">${toEmail || '—'}</td>
+          </tr>
+        </table>
+        <span style="display: block; font-size: 11px; color: #94a3b8; margin-top: 8px;">Use your registered username above along with your new password to sign in after reset.</span>
+      </div>`;
+    credentialsBoxPlain = `\nRegistered Account Details:\n- Username: ${username || '—'}\n- Registered Email: ${toEmail || '—'}\n`;
+  }
+
+  const plainText = `RailSecurix - ${subjectTitle}\n\n` +
+    `Your one-time verification code (OTP) is: ${otp}\n` +
+    `${credentialsBoxPlain}\n` +
     `Enter this code within 5 minutes to ${actionText}.\n` +
     `If you did not request this verification, please ignore this email.\n\n` +
     `RailSecurix Security Team\n` +
@@ -170,23 +220,24 @@ export async function sendOtpBrevo(toEmail, otp, purpose = 'registration') {
 <html>
 <head><meta charset="utf-8"><title>RailSecurix Verification</title></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px; color: #0f172a;">
-  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
+  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);">
     <div style="background: #0b2144; padding: 24px 32px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 20px;">RailSecurix</h1>
+      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800;">RailSecurix</h1>
       <p style="color: #94a3b8; margin: 4px 0 0 0; font-size: 12px;">Secure Railway Reservation Portal</p>
     </div>
     <div style="padding: 32px;">
-      <h2 style="font-size: 18px; color: #0b2144; margin-top: 0;">Email Verification Required</h2>
+      <h2 style="font-size: 18px; font-weight: 700; color: #0b2144; margin-top: 0;">${subjectTitle}</h2>
       <p style="font-size: 14px; line-height: 1.6; color: #475569;">
         Thank you for choosing RailSecurix. Use the one-time verification code below to ${actionText}:
       </p>
       <div style="background: #f8fafc; border: 2px dashed #0b2144; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0;">
-        <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b;">One-Time Verification Code</span>
+        <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; color: #64748b; margin-bottom: 6px;">One-Time Verification Code</span>
         <span style="display: block; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #0b2144; font-family: monospace;">${otp}</span>
         <span style="display: block; font-size: 12px; color: #f95c19; font-weight: 600; margin-top: 6px;">Valid for 5 minutes only</span>
       </div>
-      <p style="font-size: 12px; line-height: 1.5; color: #64748b;">
-        For your security, never share this code with anyone. RailSecurix staff will never ask for your verification code.
+${credentialsBoxHtml}
+      <p style="font-size: 12px; line-height: 1.5; color: #64748b; margin: 20px 0 0 0;">
+        For your security, never share this code with anyone. RailSecurix staff will never ask for your verification code. If you did not initiate this request, you can safely disregard this message.
       </p>
     </div>
     <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 32px; text-align: center; font-size: 11px; color: #94a3b8;">
@@ -218,7 +269,7 @@ export async function sendOtpBrevo(toEmail, otp, purpose = 'registration') {
       body: JSON.stringify({
         sender: { name: senderName, email: senderEmail },
         to: [{ email: toEmail }],
-        subject: `RailSecurix - Verification Code: ${otp}`,
+        subject: `RailSecurix - ${subjectPrefix}: ${otp}`,
         htmlContent,
         textContent: plainText,
       }),

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Ticket, Navigation, Search, CheckCircle2, Clock, MapPin, AlertCircle } from "lucide-react";
+import { getBookingByPNR } from "@/services/bookingService";
 
 interface QuickServicesModalProps {
   type: "pnr" | "track" | null;
@@ -23,26 +24,49 @@ export const QuickServicesModal: React.FC<QuickServicesModalProps> = ({
     setResult(null);
 
     if (type === "pnr") {
-      if (!inputValue.trim() || inputValue.trim().length !== 10) {
+      const pnrQuery = inputValue.trim();
+      if (!pnrQuery || pnrQuery.length !== 10) {
         setError("Please enter a valid 10-digit PNR Number.");
         return;
       }
       setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
-        setResult({
-          pnr: inputValue.trim(),
-          trainNumber: "22439",
-          trainName: "Vande Bharat Ex",
-          journeyDate: "15 Oct 2026",
-          from: "NDLS - New Delhi",
-          to: "JAT - Jammu Tawi",
-          status: "CNF (Confirmed)",
-          coach: "C2",
-          berth: "34 (Window Side)",
-          chart: "Chart Prepared",
+      getBookingByPNR(pnrQuery)
+        .then((b) => {
+          if (!b) {
+            setError(`PNR not found. No booking record exists for PNR ${pnrQuery}.`);
+            setResult(null);
+          } else {
+            const rawStatus = b.bookingStatus || "CNF (Confirmed)";
+            const isWL = rawStatus.toUpperCase().includes("WL");
+            const firstPax = b.passengers && b.passengers.length > 0 ? b.passengers[0] : null;
+            const berthDisplay = isWL
+              ? (firstPax?.seat || firstPax?.seat_allocated || b.seatNumber || "WL")
+              : (firstPax?.seat || firstPax?.seat_allocated || b.seatNumber || "34 (Window Side)");
+            const coachDisplay = isWL ? "Not Assigned (WL)" : (b.coach || "C2");
+            const chartDisplay = isWL ? "Chart Not Prepared" : "Chart Prepared";
+
+            setResult({
+              pnr: b.PNR,
+              trainNumber: b.trainNumber,
+              trainName: b.trainName || `Train #${b.trainNumber}`,
+              journeyDate: b.travelDate,
+              from: b.source || "NDLS",
+              to: b.destination || "JAT",
+              status: rawStatus,
+              coach: coachDisplay,
+              berth: berthDisplay,
+              chart: chartDisplay,
+              isWL,
+            });
+          }
+        })
+        .catch(() => {
+          setError(`PNR not found. No booking record exists for PNR ${pnrQuery}.`);
+          setResult(null);
+        })
+        .finally(() => {
+          setLoading(false);
         });
-      }, 500);
     } else {
       if (!inputValue.trim()) {
         setError("Please enter a Train Name or 5-digit Train Number.");
@@ -140,7 +164,11 @@ export const QuickServicesModal: React.FC<QuickServicesModalProps> = ({
                 <>
                   <div className="flex justify-between font-bold text-slate-900 dark:text-slate-100 text-sm pb-1.5 border-b border-slate-200 dark:border-slate-700">
                     <span>PNR: {result.pnr}</span>
-                    <span className="text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded text-xs font-black">
+                    <span className={`px-2 py-0.5 rounded text-xs font-black ${
+                      result.isWL
+                        ? "text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60"
+                        : "text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60"
+                    }`}>
                       {result.status}
                     </span>
                   </div>
@@ -153,12 +181,18 @@ export const QuickServicesModal: React.FC<QuickServicesModalProps> = ({
                     <span className="font-semibold text-slate-800 dark:text-slate-300">{result.from} → {result.to}</span>
                   </div>
                   <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>Journey Date</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-300">{result.journeyDate}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400">
                     <span>Coach / Berth</span>
                     <span className="font-bold text-blue-600 dark:text-blue-400">{result.coach} / {result.berth}</span>
                   </div>
                   <div className="flex justify-between text-slate-600 dark:text-slate-400">
                     <span>Chart Status</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">{result.chart}</span>
+                    <span className={`font-semibold ${
+                      result.isWL ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                    }`}>{result.chart}</span>
                   </div>
                 </>
               ) : (

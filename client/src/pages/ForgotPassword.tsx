@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, Mail, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { api } from "@/services/api";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"email" | "verify" | "reset">("email");
+  const [step, setStep] = useState<"email" | "verify">("email");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,24 +16,25 @@ const ForgotPassword = () => {
 
   const handleSendResetEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setMessage({ type: "error", text: "Please enter your email address" });
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setMessage({ type: "error", text: "Please enter a valid registered email address." });
       return;
     }
 
     setLoading(true);
+    setMessage(null);
     try {
-      // Simulated password reset verification dispatch
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const res = await api.sendForgotPasswordOtp(cleanEmail);
       setMessage({
         type: "success",
-        text: "Password reset link sent to your email! Check your inbox (use code: 123456).",
+        text: res.message || `A 6-digit verification OTP has been sent to ${cleanEmail}. Check your inbox.`,
       });
       setStep("verify");
     } catch (error: any) {
       setMessage({
         type: "error",
-        text: error.message || "Failed to send reset email. Please try again.",
+        text: error.message || "Failed to send reset OTP. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -41,36 +43,44 @@ const ForgotPassword = () => {
 
   const handleVerifyAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetCode) {
-      setMessage({ type: "error", text: "Please enter the code from your email" });
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = resetCode.trim();
+
+    if (!cleanCode) {
+      setMessage({ type: "error", text: "Please enter the 6-digit verification OTP." });
       return;
     }
     if (!newPassword || !confirmPassword) {
-      setMessage({ type: "error", text: "Please enter your new password" });
+      setMessage({ type: "error", text: "Please enter and confirm your new password." });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setMessage({ type: "error", text: "Passwords do not match" });
+      setMessage({ type: "error", text: "New password and confirm password do not match." });
       return;
     }
     if (newPassword.length < 6) {
-      setMessage({ type: "error", text: "Password must be at least 6 characters" });
+      setMessage({ type: "error", text: "Password must be at least 6 characters long." });
       return;
     }
 
     setLoading(true);
+    setMessage(null);
     try {
-      // Note: Firebase provides a confirmation code in the email
-      // In real implementation, this would validate the code and reset the password
+      const res = await api.resetPasswordWithOtp({
+        email: cleanEmail,
+        otp: cleanCode,
+        newPassword,
+        confirmPassword,
+      });
       setMessage({
         type: "success",
-        text: "Password reset successful! Redirecting to login...",
+        text: res.message || "Password reset successful! Redirecting to login...",
       });
       setTimeout(() => navigate("/login"), 2000);
     } catch (error: any) {
       setMessage({
         type: "error",
-        text: error.message || "Failed to reset password. Please try again.",
+        text: error.message || "Failed to reset password. Please verify the code and try again.",
       });
     } finally {
       setLoading(false);
@@ -91,9 +101,8 @@ const ForgotPassword = () => {
 
         <h1 className="mb-2 text-2xl sm:text-3xl font-bold">Reset Password</h1>
         <p className="mb-6 text-xs sm:text-sm text-muted-foreground">
-          {step === "email" && "Enter your email address to receive a password reset link"}
-          {step === "verify" && "Check your email for the reset code"}
-          {step === "reset" && "Enter your new password"}
+          {step === "email" && "Enter your registered email address to receive a 6-digit verification OTP"}
+          {step === "verify" && "Enter the 6-digit verification OTP sent to your email and your new password"}
         </p>
 
         {/* Message */}
@@ -120,12 +129,13 @@ const ForgotPassword = () => {
         {step === "email" && (
           <form onSubmit={handleSendResetEmail} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2">Email Address</label>
+              <label className="block text-sm font-semibold mb-2">Registered Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                required
                 className="w-full rounded-lg border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -135,22 +145,25 @@ const ForgotPassword = () => {
               className="w-full"
               size="lg"
             >
-              {loading ? "Sending..." : "Send Reset Link"}
+              {loading ? "Sending OTP..." : "Send Verification OTP"}
             </Button>
           </form>
         )}
 
-        {/* Step 2 & 3: Verify & Reset */}
+        {/* Step 2: Verify OTP & Set New Password */}
         {step === "verify" && (
           <form onSubmit={handleVerifyAndReset} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2">Verification Code</label>
+              <label className="block text-sm font-semibold mb-2">6-Digit Verification OTP</label>
               <input
                 type="text"
+                inputMode="numeric"
+                maxLength={6}
                 value={resetCode}
-                onChange={(e) => setResetCode(e.target.value)}
-                placeholder="Enter code from email"
-                className="w-full rounded-lg border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="Enter 6-digit OTP"
+                required
+                className="w-full rounded-lg border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary tracking-widest text-center font-mono text-lg font-bold"
               />
             </div>
 
@@ -160,7 +173,8 @@ const ForgotPassword = () => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder="Enter new password (min. 6 characters)"
+                required
                 className="w-full rounded-lg border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -172,6 +186,7 @@ const ForgotPassword = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
+                required
                 className="w-full rounded-lg border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -182,7 +197,7 @@ const ForgotPassword = () => {
               className="w-full"
               size="lg"
             >
-              {loading ? "Resetting..." : "Reset Password"}
+              {loading ? "Resetting Password..." : "Reset Password"}
             </Button>
 
             <Button
@@ -191,13 +206,13 @@ const ForgotPassword = () => {
               className="w-full"
               onClick={() => {
                 setStep("email");
-                setEmail("");
                 setResetCode("");
                 setNewPassword("");
                 setConfirmPassword("");
+                setMessage(null);
               }}
             >
-              Send New Code
+              Use a Different Email / Resend OTP
             </Button>
           </form>
         )}
@@ -205,8 +220,7 @@ const ForgotPassword = () => {
         {/* Info Box */}
         <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
           <p className="text-xs text-muted-foreground">
-            💡 <strong>Tip:</strong> Check your spam/junk folder if you don't see the reset email.
-            If you're still having trouble, please contact support.
+            💡 <strong>Tip:</strong> The verification OTP is valid for 5 minutes. Check your spam/junk folder if you don't see the email within a minute.
           </p>
         </div>
       </div>

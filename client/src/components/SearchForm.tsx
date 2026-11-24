@@ -9,7 +9,6 @@ import {
   PieChart,
   Network,
   Ticket,
-  Train,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -677,15 +676,15 @@ export const SearchForm: React.FC = () => {
                 </div>
               </div>
 
-              {/* Vertical Divider & Right Quick Links (4 columns) matching Reference Image 6 */}
-              <div className="lg:col-span-4 lg:border-l lg:border-slate-200 dark:lg:border-slate-800 lg:pl-6 flex flex-col justify-center space-y-3 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
+              {/* Vertical Divider & Right Quick Action (4 columns) */}
+              <div className="lg:col-span-4 lg:border-l lg:border-slate-200 dark:lg:border-slate-800 lg:pl-6 flex flex-col justify-center pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
                 {/* Check PNR Status Card */}
                 <button
                   type="button"
                   onClick={() => setQuickServiceModal("pnr")}
-                  className="w-full bg-slate-50/80 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-xs hover:shadow transition group text-left cursor-pointer"
+                  className="w-full bg-slate-50/80 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 flex items-center gap-3.5 shadow-xs hover:shadow transition group text-left cursor-pointer"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition shrink-0">
+                  <div className="h-11 w-11 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition shrink-0">
                     <Ticket className="w-5 h-5" />
                   </div>
                   <div>
@@ -694,25 +693,6 @@ export const SearchForm: React.FC = () => {
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Instant 10-digit live berth confirmation
-                    </p>
-                  </div>
-                </button>
-
-                {/* Track Your Train Card */}
-                <button
-                  type="button"
-                  onClick={() => setQuickServiceModal("track")}
-                  className="w-full bg-slate-50/80 dark:bg-slate-800/60 hover:bg-blue-50/70 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-xs hover:shadow transition group text-left cursor-pointer"
-                >
-                  <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition shrink-0">
-                    <Train className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 transition">
-                      Track Your Train
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Real-time live running status & delays
                     </p>
                   </div>
                 </button>

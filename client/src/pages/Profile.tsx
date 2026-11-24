@@ -8,25 +8,77 @@ import Loader from "@/components/Loader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, Calendar, Award, LogOut, ArrowRight, Zap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  User,
+  Calendar,
+  LogOut,
+  ArrowRight,
+  Mail,
+  Phone,
+  MapPin,
+  Edit3,
+  Plus,
+  Check,
+} from "lucide-react";
+
+const formatMemberSince = (rawDate?: string | Date | null): string => {
+  if (!rawDate) {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const yyyy = today.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  const d = new Date(rawDate);
+  if (isNaN(d.getTime())) return String(rawDate);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [trains, setTrains] = useState<Train[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("upcoming");
 
-  // Mock user data (in production, fetch from Firestore)
-  const [userData] = useState({
-    totalBookings: 0,
-    totalPoints: 1250,
-    tier: "Silver",
-    memberSince: new Date(2024, 0, 15), // January 15, 2024
-    phone: "+91 98765 43210",
-    address: "123 Main Street, Bangalore, KA 560001",
-  });
+  // Profile modal and editable fields
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Local storage profile key
+  const storageKey = user?.id ? `railsecurix_profile_${user.id}` : null;
+
+  // Initialize editable fields from user or local cache
+  useEffect(() => {
+    if (!user) return;
+    let cached: any = {};
+    if (storageKey) {
+      try {
+        cached = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      } catch {}
+    }
+    setEditFullName(user.fullName || cached.fullName || "");
+    setEditPhone(user.phone || cached.phone || "");
+    setEditAddress(user.address || cached.address || "");
+  }, [user, storageKey]);
 
   useEffect(() => {
     if (!user) {
@@ -41,8 +93,8 @@ const Profile = () => {
           getUserBookings(userKey),
           getAllTrains(),
         ]);
-        setBookings(b);
-        setTrains(t);
+        setBookings(b || []);
+        setTrains(t || []);
       } catch (error) {
         console.error("Error loading profile data:", error);
       } finally {
@@ -52,6 +104,38 @@ const Profile = () => {
 
     loadData();
   }, [user, navigate]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
+      if (storageKey) {
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            fullName: editFullName.trim(),
+            phone: editPhone.trim(),
+            address: editAddress.trim(),
+          })
+        );
+      }
+      await updateUser({
+        fullName: editFullName.trim(),
+        phone: editPhone.trim(),
+        address: editAddress.trim(),
+      });
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setIsEditOpen(false);
+        setSaveSuccess(false);
+      }, 700);
+    } catch (err) {
+      console.error("Error saving profile:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleCancel = async (booking: Booking) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
@@ -84,7 +168,7 @@ const Profile = () => {
       bookingDate.setHours(0, 0, 0, 0);
       return bookingDate >= today;
     }
-    return true; // Default confirmed booking to upcoming
+    return true;
   });
 
   const pastBookings = bookings.filter((b) => {
@@ -106,144 +190,232 @@ const Profile = () => {
   const initials = user?.email
     ? user.email.substring(0, 2).toUpperCase()
     : "U";
-  const userName = user?.email?.split("@")[0] || "User";
+  const displayName = user?.fullName || user?.username || user?.email?.split("@")[0] || "Traveler";
+  const memberSinceDate = formatMemberSince(user?.createdAt || user?.created_at);
 
-  // Calculate tier benefits
-  const tierBenefits =
-    userData.tier === "Silver"
-      ? ["5% discount on bookings", "Priority customer support", "200 bonus points on referral"]
-      : userData.tier === "Gold"
-      ? ["10% discount on bookings", "24/7 priority support", "500 bonus points on referral", "Free seat upgrade"]
-      : ["2% discount on bookings", "Email support", "100 bonus points on referral"];
+  const userPhone = user?.phone || editPhone;
+  const userAddress = user?.address || editAddress;
 
   return (
     <div className="container mx-auto max-w-5xl animate-fade-in px-4 py-10">
       {/* Profile Header Card */}
-      <div className="card-shadow mb-8 rounded-2xl border bg-gradient-to-br from-primary/5 to-primary/10 p-8">
-        <div className="grid gap-6 md:grid-cols-3">
+      <div className="card-shadow mb-8 rounded-2xl border bg-gradient-to-br from-primary/5 via-background to-primary/10 p-6 sm:p-8">
+        <div className="grid gap-6 md:grid-cols-2 items-center">
           {/* Left: Avatar and Basic Info */}
-          <div className="flex flex-col items-center gap-4 md:col-span-1">
-            <Avatar className="h-24 w-24 border-4 border-primary">
-              <AvatarFallback className="bg-primary text-lg font-bold text-primary-foreground">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+            <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-primary/20 shadow-md">
+              <AvatarFallback className="bg-primary text-xl font-bold text-primary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold capitalize">{userName}</h1>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Member since {userData.memberSince.toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-
-          {/* Center: Quick Stats */}
-          <div className="flex flex-col justify-center gap-3 md:col-span-1 md:border-l md:border-r md:px-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-primary">
-                {bookings.length}
-              </p>
-              <p className="text-xs text-muted-foreground">Total Bookings</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">{upcomingBookings.length}</p>
-              <p className="text-xs text-muted-foreground">Upcoming Trips</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">{pastBookings.length}</p>
-              <p className="text-xs text-muted-foreground">Completed Trips</p>
-            </div>
-          </div>
-
-          {/* Right: Rewards */}
-          <div className="flex flex-col justify-center gap-4 md:col-span-1">
-            <div className="rounded-lg bg-card p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <Award className="h-5 w-5 text-warning" />
-                <p className="text-sm font-semibold">{userData.tier} Member</p>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                {userData.tier === "Silver"
-                  ? "🎉 Great! You're in our Silver tier"
-                  : userData.tier === "Gold"
-                  ? "👑 Premium Gold status"
-                  : "Get more bookings to unlock Silver!"}
-              </p>
-              <div className="mb-3 h-2 w-full rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{
-                    width: `${userData.tier === "Silver" ? 66 : userData.tier === "Gold" ? 100 : 33}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-success" />
-                  <span className="text-sm font-semibold">
-                    {userData.totalPoints} Points
-                  </span>
-                </div>
-                <span className="text-xs font-medium text-success">
-                  ₹{Math.floor(userData.totalPoints / 10)}
+            <div className="text-center sm:text-left space-y-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                <h1 className="text-2xl font-bold text-foreground">{displayName}</h1>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary capitalize">
+                  {user?.role || "Traveler"}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                1 point = ₹0.10 on next booking
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <p className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start gap-1 pt-1">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                <span>Member since {memberSinceDate}</span>
               </p>
+            </div>
+          </div>
+
+          {/* Right: Booking Counters (Total, Upcoming, Completed) */}
+          <div className="grid grid-cols-3 gap-3 border-t pt-4 md:border-t-0 md:pt-0 md:border-l md:pl-6 text-center">
+            <div className="rounded-xl bg-card/70 p-3.5 border shadow-sm">
+              <p className="text-2xl sm:text-3xl font-extrabold text-primary">
+                {bookings.length}
+              </p>
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mt-0.5">Total Bookings</p>
+            </div>
+            <div className="rounded-xl bg-card/70 p-3.5 border shadow-sm">
+              <p className="text-2xl sm:text-3xl font-extrabold text-foreground">
+                {upcomingBookings.length}
+              </p>
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mt-0.5">Upcoming Trips</p>
+            </div>
+            <div className="rounded-xl bg-card/70 p-3.5 border shadow-sm">
+              <p className="text-2xl sm:text-3xl font-extrabold text-foreground">
+                {pastBookings.length}
+              </p>
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mt-0.5">Completed Trips</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tier Benefits */}
-      {userData.tier && (
-        <div className="card-shadow mb-8 rounded-xl border bg-card p-6">
-          <h3 className="mb-3 flex items-center gap-2 font-semibold">
-            <Award className="h-5 w-5 text-primary" />
-            {userData.tier} Tier Benefits
-          </h3>
-          <div className="grid gap-3 md:grid-cols-3">
-            {tierBenefits.map((benefit, i) => (
-              <div key={i} className="flex items-start gap-2 rounded-lg bg-primary/5 p-3">
-                <span className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-primary" />
-                <p className="text-sm text-muted-foreground">{benefit}</p>
-              </div>
-            ))}
+      {/* Account Information Card */}
+      <div className="card-shadow mb-8 rounded-2xl border bg-card p-6 sm:p-8">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b">
+          <div>
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Account Information
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Personal contact details associated with your railway reservations
+            </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditOpen(true)}
+            className="gap-1.5"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            Edit Profile
+          </Button>
         </div>
-      )}
 
-      {/* Contact & Account Info */}
-      <div className="card-shadow mb-8 rounded-xl border bg-card p-6">
-        <h3 className="mb-4 font-semibold">Account Information</h3>
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Email Address
-            </label>
-            <p className="mt-1 font-medium">{user?.email}</p>
+        <div className="grid gap-6 sm:grid-cols-2">
+          {/* Full Name */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-primary" /> Full Name
+            </span>
+            <p className="font-medium text-foreground">
+              {user?.fullName || displayName}
+            </p>
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Phone Number
-            </label>
-            <p className="mt-1 font-medium">{userData.phone}</p>
+
+          {/* Email Address */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5 text-primary" /> Email Address
+            </span>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-foreground">{user?.email}</p>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-900">
+                <Check className="h-3 w-3" /> Verified
+              </span>
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Address
-            </label>
-            <p className="mt-1 font-medium">{userData.address}</p>
+
+          {/* Mobile Number */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-primary" /> Mobile Number
+            </span>
+            {userPhone ? (
+              <p className="font-medium text-foreground">{userPhone}</p>
+            ) : (
+              <div className="flex items-center gap-2 pt-0.5">
+                <span className="text-sm italic text-muted-foreground">Not provided</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Add Mobile Number
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Address */}
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" /> Residential Address
+            </span>
+            {userAddress ? (
+              <p className="font-medium text-foreground">{userAddress}</p>
+            ) : (
+              <div className="flex items-center gap-2 pt-0.5">
+                <span className="text-sm italic text-muted-foreground">Not provided</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Add Address
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <Button variant="outline" size="sm" className="mt-6">
-          Edit Profile
-        </Button>
       </div>
+
+      {/* Edit Profile Modal */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Profile Information</DialogTitle>
+            <DialogDescription>
+              Update your personal contact details. These details are used to auto-fill ticket booking forms.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveProfile} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName" className="text-xs font-semibold">
+                Full Name
+              </Label>
+              <Input
+                id="fullName"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                placeholder="Your full name"
+                className="rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-xs font-semibold">
+                Mobile Number
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="rounded-xl"
+              />
+              <p className="text-[11px] text-muted-foreground">Used for SMS train alerts and PNR updates.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="address" className="text-xs font-semibold">
+                Address
+              </Label>
+              <Input
+                id="address"
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                placeholder="Street address, City, State, PIN"
+                className="rounded-xl"
+              />
+            </div>
+
+            {saveSuccess && (
+              <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                <Check className="h-3.5 w-3.5" /> Profile updated successfully!
+              </p>
+            )}
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditOpen(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="gap-2"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Booking History Tabs */}
       <div className="card-shadow mb-8 rounded-xl border bg-card p-6">
@@ -350,7 +522,6 @@ const Profile = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            // In a real app, generate PDF
                             alert("Download ticket PDF for " + b.PNR);
                           }}
                         >

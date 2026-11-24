@@ -64,10 +64,12 @@ const TicketCard = ({ booking, onCancel }: Props) => (
               travelDate: booking.travelDate,
               passengerName: booking.passengerName,
               coach: booking.coach,
+              travelClass: (booking as any).travelClass || booking.coach,
               seatNumber: String(booking.seatNumber),
               fare: booking.fare || 0,
               totalPrice: booking.totalAmount || 0,
               bookingStatus: booking.bookingStatus,
+              passengers: booking.passengers,
             });
             if (!success) {
               alert("Failed to download ticket. Check console for details.");

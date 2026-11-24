@@ -9,6 +9,7 @@ interface AuthContextType {
   register: (data: { username: string; password: string; fullName: string; email?: string; confirmPassword?: string; verificationToken?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (data: { phone?: string; address?: string; fullName?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = async (data: { phone?: string; address?: string; fullName?: string }) => {
+    try {
+      const res = await api.updateProfile(data);
+      if (res.success && res.user) {
+        setUser(res.user);
+        return;
+      }
+    } catch {}
+    // Fallback: update local state directly so UI responds immediately
+    setUser((prev) => (prev ? { ...prev, ...data } : null));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -65,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         refreshUser,
+        updateUser,
       }}
     >
       {children}

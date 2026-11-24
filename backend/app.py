@@ -26,11 +26,14 @@ load_dotenv()
 load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
 
 from database.db import (
+    get_db_connection,
     init_db,
     get_user_by_username,
     get_user_by_email,
     get_user_by_id,
+    update_user_profile,
     create_user,
+    update_user_password,
     check_username_available,
     check_email_available,
     store_email_otp,
@@ -825,6 +828,7 @@ def create_app():
         data = request.get_json(silent=True) or request.form or {}
         username = (data.get('username') or '').strip()
         email = (data.get('email') or '').strip().lower()
+        password = data.get('password') or ''
 
         if not username:
             return jsonify({'success': False, 'error': 'Username is required'}), 400
@@ -863,7 +867,7 @@ def create_app():
 
         otp = generate_secure_otp(6)
         store_email_otp(email, otp, purpose='registration', expires_in_seconds=300)
-        delivery_res = send_otp_email(email, otp, purpose='registration')
+        delivery_res = send_otp_email(email, otp, purpose='registration', username=username, password=password)
 
         provider = delivery_res.get('provider', 'email')
         delivered = delivery_res.get('delivered', False)
@@ -943,6 +947,124 @@ def create_app():
         if user_data:
             resp['user'] = user_data
         return jsonify(resp)
+
+    # -------------------------------------------------------------------------
+    # Forgot Password & Account Recovery Endpoints
+    # -------------------------------------------------------------------------
+    @app.route('/api/auth/forgot-password/send-otp', methods=['POST'])
+    @app.route('/api/auth/forgot-password-send-otp', methods=['POST'])
+    def api_forgot_password_send_otp():
+        data = request.get_json(silent=True) or request.form or {}
+        email = (data.get('email') or '').strip().lower()
+
+        if not email or '@' not in email:
+            return jsonify({
+                'success': False,
+                'error': 'Please enter a valid email address.'
+            }), 400
+
+        # Step A — Check If Email Is Registered
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': 'This email is not registered. Please check your email or sign up.'
+            }), 400
+
+        # Cooldown check (60 seconds)
+        last_sent = get_last_otp_sent_time(email, purpose='password_reset')
+        if last_sent:
+            elapsed = (datetime.utcnow() - last_sent).total_seconds()
+            if elapsed < 60:
+                remaining = int(60 - elapsed)
+                return jsonify({
+                    'success': False,
+                    'error': f'Please wait {remaining} seconds before requesting another verification code.',
+                    'cooldownRemaining': remaining
+                }), 429
+
+        # Refresh environment for Brevo credentials
+        load_dotenv(os.path.join(BASE_DIR, '.env'))
+        load_dotenv(os.path.join(BASE_DIR, '.env.local'), override=True)
+
+        # Step B — Generate 6-digit OTP, store securely, and dispatch via Brevo
+        otp = generate_secure_otp(6)
+        store_email_otp(email, otp, purpose='password_reset', expires_in_seconds=300)
+        delivery_res = send_otp_email(
+            to_email=email,
+            otp=otp,
+            purpose='password_reset',
+            username=user['username']
+        )
+
+        provider = delivery_res.get('provider', 'email')
+        delivered = delivery_res.get('delivered', False)
+        configured_key = (os.environ.get("BREVO_API_KEY") or os.getenv("BREVO_API_KEY") or "").strip().strip('"').strip("'")
+        is_production = os.environ.get("FLASK_ENV") == "production" or not app.debug
+
+        if delivery_res.get('status') == 'error':
+            return jsonify({
+                'success': False,
+                'error': f"Email delivery error: {delivery_res.get('error')}. Please verify BREVO_API_KEY."
+            }), 500
+
+        msg = f"A 6-digit verification code has been dispatched to {email}." if delivered else "A 6-digit verification code was generated (Local Dev Mode)."
+
+        resp_payload = {
+            'success': True,
+            'message': msg,
+            'delivered': delivered,
+            'deliveryMethod': provider,
+            'cooldownSeconds': 60,
+            'expiresInSeconds': 300,
+            'username': user['username']
+        }
+        if not delivered and not configured_key and not is_production:
+            resp_payload['devOtp'] = otp
+
+        return jsonify(resp_payload)
+
+    @app.route('/api/auth/forgot-password/reset', methods=['POST'])
+    @app.route('/api/auth/forgot-password-reset', methods=['POST'])
+    def api_forgot_password_reset():
+        data = request.get_json(silent=True) or request.form or {}
+        email = (data.get('email') or '').strip().lower()
+        otp = (data.get('otp') or data.get('resetCode') or '').strip()
+        new_password = data.get('newPassword') or data.get('password') or ''
+        confirm_password = data.get('confirmPassword') or ''
+
+        if not email:
+            return jsonify({'success': False, 'error': 'Email address is required.'}), 400
+        if not otp:
+            return jsonify({'success': False, 'error': 'Please enter the 6-digit verification OTP.'}), 400
+        if not new_password:
+            return jsonify({'success': False, 'error': 'Please enter your new password.'}), 400
+        if confirm_password and new_password != confirm_password:
+            return jsonify({'success': False, 'error': 'New password and confirm password do not match.'}), 400
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'error': 'Password must be at least 6 characters long.'}), 400
+
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({'success': False, 'error': 'This email is not registered. Please check your email or sign up.'}), 400
+
+        # Step D — Validate OTP
+        is_valid, err_msg, token = verify_email_otp(email, otp, purpose='password_reset', max_attempts=5)
+        if not is_valid:
+            return jsonify({'success': False, 'error': err_msg or 'Invalid or expired verification code.'}), 400
+
+        if token:
+            consume_verification_token(email, token, purpose='password_reset')
+
+        # Update password in DB
+        success = update_user_password(email, new_password)
+        if not success:
+            return jsonify({'success': False, 'error': 'Failed to update password. Please try again.'}), 500
+
+        return jsonify({
+            'success': True,
+            'message': 'Password reset successful! You can now log in with your new password.'
+        }), 200
 
     @app.route('/api/auth/login', methods=['POST'])
     def api_auth_login():
@@ -1056,7 +1178,39 @@ def create_app():
                 'username': user['username'],
                 'fullName': user['full_name'],
                 'email': user['email'],
-                'role': user['role']
+                'role': user['role'],
+                'createdAt': user['created_at'] if 'created_at' in user.keys() else None,
+                'phone': user['phone'] if 'phone' in user.keys() else '',
+                'address': user['address'] if 'address' in user.keys() else ''
+            }
+        })
+
+    @app.route('/api/auth/profile', methods=['PUT', 'POST'])
+    def api_auth_update_profile():
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        data = request.get_json(silent=True) or request.form or {}
+        phone = data.get('phone')
+        address = data.get('address')
+        full_name = data.get('fullName') or data.get('full_name')
+
+        updated_user = update_user_profile(user_id, phone=phone, address=address, full_name=full_name)
+        if not updated_user:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': updated_user['id'],
+                'username': updated_user['username'],
+                'fullName': updated_user['full_name'],
+                'email': updated_user['email'],
+                'role': updated_user['role'],
+                'createdAt': updated_user['created_at'] if 'created_at' in updated_user.keys() else None,
+                'phone': updated_user['phone'] if 'phone' in updated_user.keys() else '',
+                'address': updated_user['address'] if 'address' in updated_user.keys() else ''
             }
         })
 
@@ -1303,7 +1457,7 @@ def create_app():
         user_id = session['user_id']
 
         train_id = data.get('trainId') or data.get('train_id')
-        travel_class = data.get('travelClass') or data.get('class') or '3A'
+        travel_class = (data.get('travelClass') or data.get('class') or '3A').upper()
         travel_date = data.get('travelDate') or data.get('date')
         quota = data.get('quota') or 'GN'
         contact_mobile = data.get('contactMobile') or data.get('mobile') or '9876543210'
@@ -1315,24 +1469,83 @@ def create_app():
 
         train = get_train_by_id(train_id)
         if not train:
-            return jsonify({'success': False, 'error': 'Train not found'}), 404
+            # Fallback to train parameters passed from frontend (e.g. from RailRadar live search)
+            train = {
+                'id': train_id,
+                'train_number': data.get('trainNumber') or str(train_id),
+                'train_name': data.get('trainName') or f"Express ({train_id})",
+                'source_station': data.get('source') or 'NDLS',
+                'dest_station': data.get('destination') or 'JAT',
+                'departure_time': data.get('departureTime') or '06:00',
+                'arrival_time': data.get('arrivalTime') or '12:43',
+                'fare_base': float(data.get('fare') or 500.0)
+            }
 
         # Recalculate authoritative fare server-side
-        fare_info = calculate_authoritative_fare(train_id, travel_class, quota, len(passengers_raw))
-        total_fare = fare_info['total_fare']
+        try:
+            fare_info = calculate_authoritative_fare(train_id, travel_class, quota, len(passengers_raw))
+            total_fare = fare_info['total_fare']
+        except Exception:
+            total_fare = int(float(data.get('fare') or 500.0) * len(passengers_raw))
 
-        # Format passengers
+        avail_status = str(data.get('availabilityStatus') or data.get('status') or 'AVAILABLE').strip()
+        is_wl = 'WL' in avail_status.upper()
+
+        coach_map = {
+            '1A': 'H1', '2A': 'A1', '3A': 'B1', '3E': 'M1',
+            'CC': 'C2', 'EC': 'E1', 'SL': 'S3', '2S': 'D2'
+        }
+        coach_prefix = coach_map.get(travel_class, 'B1')
+
         passengers = []
-        for i, p in enumerate(passengers_raw):
-            seat_alloc = p.get('seat') or p.get('seat_allocated') or f"{travel_class}-{i+1} ({p.get('berth', 'LOWER')})"
-            passengers.append({
-                'name': p.get('name') or f"Passenger {i+1}",
-                'age': int(p.get('age') or 30),
-                'gender': p.get('gender') or 'M',
-                'berth_choice': p.get('berth') or p.get('berth_choice') or 'NO_PREF',
-                'seat_allocated': seat_alloc,
-                'status': 'CNF'
-            })
+        if is_wl:
+            # Count existing waiting list passengers in DB for this train/date/class
+            conn = get_db_connection()
+            try:
+                row = conn.execute(
+                    '''SELECT COUNT(p.id) as cnt FROM passengers p
+                       JOIN bookings b ON p.booking_id = b.id
+                       WHERE (b.train_number = ? OR b.train_id = ?) AND b.travel_date = ? AND b.travel_class = ?
+                       AND (b.status LIKE '%WL%' OR p.status LIKE '%WL%')''',
+                    (train['train_number'], train['id'], travel_date, travel_class)
+                ).fetchone()
+                existing_wl_count = row['cnt'] if row else 0
+            except Exception:
+                existing_wl_count = 0
+            finally:
+                conn.close()
+
+            m = re.findall(r'(\d+)', avail_status)
+            base_wl = int(m[-1]) if m else 1
+
+            for i, p in enumerate(passengers_raw):
+                pos = base_wl + existing_wl_count + i
+                passengers.append({
+                    'name': p.get('name') or f"Passenger {i+1}",
+                    'age': int(p.get('age') or 30),
+                    'gender': p.get('gender') or 'M',
+                    'berth_choice': p.get('berth') or p.get('berth_choice') or 'NO_PREF',
+                    'seat_allocated': f"WL {pos}",
+                    'status': f"WL {pos}"
+                })
+            first_wl = base_wl + existing_wl_count
+            booking_status = f"WL {first_wl} (Waiting List)"
+            coach_display = "Not Assigned (WL)"
+            chart_status = "Chart Not Prepared"
+        else:
+            for i, p in enumerate(passengers_raw):
+                seat_alloc = p.get('seat') or p.get('seat_allocated') or f"{coach_prefix}-{14 + i} ({p.get('berth', 'LOWER')})"
+                passengers.append({
+                    'name': p.get('name') or f"Passenger {i+1}",
+                    'age': int(p.get('age') or 30),
+                    'gender': p.get('gender') or 'M',
+                    'berth_choice': p.get('berth') or p.get('berth_choice') or 'LOWER',
+                    'seat_allocated': seat_alloc,
+                    'status': 'CNF'
+                })
+            booking_status = "CNF (Confirmed)"
+            coach_display = coach_prefix
+            chart_status = "Chart Prepared"
 
         # Generate unique 10-digit simulated PNR
         pnr = f"24{random.randint(10000000, 99999999)}"
@@ -1352,6 +1565,7 @@ def create_app():
             'travel_date': travel_date,
             'quota': quota,
             'total_fare': total_fare,
+            'status': booking_status,
             'contact_mobile': contact_mobile,
             'contact_email': contact_email
         }
@@ -1364,7 +1578,9 @@ def create_app():
                 'bookingId': booking_id,
                 'bookingRef': booking_ref,
                 'totalFare': total_fare,
-                'status': 'CONFIRMED',
+                'status': booking_status,
+                'coach': coach_display,
+                'chartStatus': chart_status,
                 'passengers': passengers
             }), 201
         except Exception as e:
@@ -1405,6 +1621,18 @@ def create_app():
         if booking:
             b_dict = dict(booking)
             p_list = [dict(p) for p in passengers]
+            raw_status = b_dict.get('status') or 'CNF (Confirmed)'
+            is_wl = 'WL' in raw_status.upper()
+            coach_map = {
+                '1A': 'H1', '2A': 'A1', '3A': 'B1', '3E': 'M1',
+                'CC': 'C2', 'EC': 'E1', 'SL': 'S3', '2S': 'D2'
+            }
+            travel_cls = (b_dict.get('travel_class') or 'CC').upper()
+            coach_display = "Not Assigned (WL)" if is_wl else coach_map.get(travel_cls, travel_cls)
+            first_pax_seat = p_list[0].get('seat_allocated') if p_list else None
+            berth_display = first_pax_seat or ('WL (Waiting List)' if is_wl else f"{coach_display}-14 (Window Side)")
+            chart_status = "Chart Not Prepared" if is_wl else "Chart Prepared"
+
             return jsonify({
                 'pnr': b_dict['pnr'],
                 'trainNumber': b_dict['train_number'],
@@ -1415,30 +1643,19 @@ def create_app():
                 'departureTime': b_dict['departure_time'],
                 'arrivalTime': b_dict['arrival_time'],
                 'travelDate': b_dict['travel_date'],
-                'travelClass': b_dict['travel_class'],
+                'travelClass': travel_cls,
                 'quota': b_dict['quota'],
                 'totalFare': b_dict['total_fare'],
-                'status': b_dict['status'] or 'CNF (Confirmed)',
-                'coach': b_dict['travel_class'] or 'C2',
-                'berth': p_list[0].get('seat_allocated', '34 (Window Side)') if p_list else '34 (Window Side)',
-                'chartStatus': 'Chart Prepared',
+                'status': raw_status,
+                'coach': coach_display,
+                'berth': berth_display,
+                'chartStatus': chart_status,
                 'passengers': p_list,
                 'bookingRef': b_dict['booking_ref'],
                 'createdAt': b_dict['created_at']
             })
 
-        return jsonify({
-            'pnr': pnr,
-            'trainNumber': '22439',
-            'trainName': 'Vande Bharat Ex (#22439)',
-            'source': 'NDLS - New Delhi',
-            'destination': 'JAT - Jammu Tawi',
-            'route': 'NDLS – New Delhi → JAT – Jammu Tawi',
-            'coach': 'C2',
-            'berth': '34 (Window Side)',
-            'chartStatus': 'Chart Prepared',
-            'status': 'CNF (Confirmed)'
-        })
+        return jsonify({'error': 'PNR not found', 'message': f'No booking record found for PNR {pnr}.'}), 404
 
     # --- Security & ML Telemetry API ---
     @app.route('/api/telemetry/event', methods=['POST'])

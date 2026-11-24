@@ -114,7 +114,7 @@ const Register = () => {
       }
 
       // 2. Dispatch OTP via Brevo API
-      const res = await api.sendOtp(cleanUser, cleanEmail);
+      const res = await api.sendOtp(cleanUser, cleanEmail, password);
       setSuccessMsg(res.message || `Verification code sent to ${cleanEmail}.`);
       setCooldown(res.cooldownSeconds || 60);
       setDeliveryMethod(res.deliveryMethod || "email");
@@ -140,7 +140,7 @@ const Register = () => {
     setSuccessMsg("");
     setOtp("");
     try {
-      const res = await api.resendOtp(username.trim(), email.trim().toLowerCase());
+      const res = await api.resendOtp(username.trim(), email.trim().toLowerCase(), password);
       setSuccessMsg(res.message || "A new 6-digit verification code has been dispatched.");
       setCooldown(res.cooldownSeconds || 60);
       setDeliveryMethod(res.deliveryMethod || "email");

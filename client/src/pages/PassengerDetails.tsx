@@ -49,6 +49,7 @@ export const PassengerDetails: React.FC = () => {
   const fare = Number(state.fare) || train.fare || 1360;
   const date = state.date || "Thu, 12 Nov";
   const quota = state.quota || "GENERAL";
+  const status = state.status || "AVAILABLE";
 
   // Passenger list state - empty initially for fresh bookings
   const [passengers, setPassengers] = useState<PassengerData[]>([]);
@@ -140,6 +141,7 @@ export const PassengerDetails: React.FC = () => {
         train,
         selectedClass,
         fare,
+        status,
         date,
         quota,
         passengers,
@@ -512,6 +514,7 @@ export const PassengerDetails: React.FC = () => {
               train={train}
               selectedClass={selectedClass}
               fare={fare}
+              status={status}
               date={date}
               quota={quota}
               passengers={passengers}

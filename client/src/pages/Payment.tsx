@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
-import { saveUserBookingLocal, Booking } from "@/services/bookingService";
+import { saveUserBookingLocal, getLocalUserBookings, Booking } from "@/services/bookingService";
 import { Train as TrainType } from "@/services/trainService";
 import { PassengerData } from "@/components/AddPassengerModal";
 import { BookingReviewSidebar } from "@/components/BookingReviewSidebar";
@@ -48,6 +48,7 @@ export const Payment: React.FC = () => {
   const fare = Number(state.fare) || train.fare || 1360;
   const date = state.date || "Thu, 12 Nov";
   const quota = state.quota || "GENERAL";
+  const status = state.status || "AVAILABLE";
   const passengers: PassengerData[] = state.passengers || [];
 
   useEffect(() => {
@@ -69,15 +70,73 @@ export const Payment: React.FC = () => {
   const [selectedGateway, setSelectedGateway] = useState<string>("Paytm");
   const [processing, setProcessing] = useState(false);
 
+  const getCoachPrefix = (cls: string) => {
+    const c = (cls || "").toUpperCase();
+    if (c === "1A") return "H1";
+    if (c === "2A") return "A1";
+    if (c === "3A") return "B1";
+    if (c === "3E") return "M1";
+    if (c === "CC") return "C2";
+    if (c === "EC") return "E1";
+    if (c === "SL") return "S3";
+    if (c === "2S") return "D2";
+    return "B1";
+  };
+
   const handlePayAndBook = async () => {
     setProcessing(true);
+    const isWL = (status || "").toUpperCase().includes("WL");
+    const currentUsername = user?.username || "testuser";
+
+    // Calculate sequential WL or confirmed seats
+    let assignedBookingStatus = "CNF (Confirmed)";
+    let assignedCoach = getCoachPrefix(selectedClass);
+    let assignedChartStatus = "Chart Prepared";
+    let allocatedSeats: string[] = [];
+
+    if (isWL) {
+      const allUserBookings = getLocalUserBookings(currentUsername);
+      const existingWlCount = allUserBookings
+        .filter(
+          (b) =>
+            (b.trainNumber === String(train.trainNumber) || b.trainId === String(train.id)) &&
+            b.travelDate === date &&
+            (b.coach === selectedClass || b.coach === "Not Assigned (WL)") &&
+            (b.bookingStatus?.toUpperCase().includes("WL") || false)
+        )
+        .reduce((sum, b) => sum + (b.passengers?.length || 1), 0);
+
+      const match = status.match(/(?:WL\s*|WL)(\d+)/i) || status.match(/(\d+)/);
+      const baseWl = match ? parseInt(match[1], 10) : 1;
+      const startingWl = baseWl + existingWlCount;
+
+      assignedBookingStatus = `WL ${startingWl} (Waiting List)`;
+      assignedCoach = "Not Assigned (WL)";
+      assignedChartStatus = "Chart Not Prepared";
+      allocatedSeats = passengers.map((_, i) => `WL ${startingWl + i}`);
+    } else {
+      assignedBookingStatus = "CNF (Confirmed)";
+      assignedCoach = getCoachPrefix(selectedClass);
+      assignedChartStatus = "Chart Prepared";
+      allocatedSeats = passengers.map((_, i) => `${assignedCoach}-${14 + i}`);
+    }
+
     try {
       // 1. Prepare authoritative payload for backend booking creation
       const payload = {
         trainId: String(train.id || train.trainNumber),
+        trainNumber: String(train.trainNumber),
+        trainName: train.trainName,
+        source: train.source,
+        destination: train.destination,
+        departureTime: train.departureTime,
+        arrivalTime: train.arrivalTime,
         travelClass: selectedClass,
         travelDate: date,
         quota: quota,
+        status: status,
+        availabilityStatus: status,
+        fare: fare,
         contactMobile: state.mobileNumber || "6005706096",
         contactEmail: user?.email || "yo******@gmail.com",
         passengers: passengers.map((p, idx) => ({
@@ -85,7 +144,7 @@ export const Payment: React.FC = () => {
           age: Number(p.age),
           gender: p.gender === "Female" ? "F" : "M",
           berth: p.preferences,
-          seat: `C2-${14 + idx}`,
+          seat: allocatedSeats[idx] || (isWL ? `WL ${idx + 1}` : `${assignedCoach}-${14 + idx}`),
         })),
       };
 
@@ -98,8 +157,13 @@ export const Payment: React.FC = () => {
         method: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
       });
 
-      const currentUsername = user?.username || "testuser";
-      const seatStr = passengers.map((_, i) => `C2-${14 + i}`).join(", ");
+      const finalStatus = bookingRes.status || assignedBookingStatus;
+      const finalCoach = bookingRes.coach || assignedCoach;
+      const finalChartStatus = (bookingRes as any).chartStatus || assignedChartStatus;
+      const finalSeats = bookingRes.passengers && bookingRes.passengers.length > 0
+        ? bookingRes.passengers.map((p: any) => p.seat_allocated || p.seat)
+        : allocatedSeats;
+      const seatStr = finalSeats.join(", ");
 
       const savedBooking: Booking = {
         id: String(bookingRes.bookingId || bookingRes.pnr),
@@ -110,11 +174,11 @@ export const Payment: React.FC = () => {
         passengerName: passengers[0]?.fullName || "Traveler",
         age: Number(passengers[0]?.age || 30),
         gender: passengers[0]?.gender === "Female" ? "F" : "M",
-        coach: selectedClass || "CC",
+        coach: finalCoach,
         seatNumber: seatStr,
         travelDate: date,
         PNR: bookingRes.pnr,
-        bookingStatus: "confirmed",
+        bookingStatus: finalStatus,
         totalAmount: grandTotal,
         fare: fare,
         source: train.source,
@@ -126,7 +190,9 @@ export const Payment: React.FC = () => {
           age: Number(p.age),
           gender: p.gender === "Female" ? "F" : "M",
           berth: p.preferences,
-          seat: `C2-${14 + idx}`,
+          seat: finalSeats[idx],
+          seat_allocated: finalSeats[idx],
+          status: isWL ? finalSeats[idx] : "CNF",
         })),
         createdAt: new Date().toISOString(),
       };
@@ -139,7 +205,7 @@ export const Payment: React.FC = () => {
           bookingId: bookingRes.bookingId,
           bookingRef: bookingRes.bookingRef,
           transactionId: paymentRes.transactionId || `TXN${Date.now()}`,
-          coach: selectedClass || "CC",
+          coach: finalCoach,
           seatNumber: seatStr,
           trainName: train.trainName,
           trainNumber: train.trainNumber,
@@ -148,23 +214,29 @@ export const Payment: React.FC = () => {
           departureTime: train.departureTime || "06:00 AM",
           arrivalTime: train.arrivalTime || "12:43 PM",
           travelDate: date,
-          passengers: passengers,
+          travelClass: selectedClass,
+          passengers: passengers.map((p, idx) => ({
+            ...p,
+            seat: finalSeats[idx],
+            seat_allocated: finalSeats[idx],
+            status: isWL ? finalSeats[idx] : "CNF",
+          })),
           passengerName: passengers[0]?.fullName || "Traveler",
           fare: fare,
           totalPrice: grandTotal,
           convenienceFee,
           travelInsurance,
-          bookingStatus: "CONFIRMED",
+          bookingStatus: finalStatus,
+          chartStatus: finalChartStatus,
           paymentMethod: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
         },
       });
     } catch (err: any) {
       console.error("Booking payment failed:", err);
       // Fallback simulated success if offline backend
-      const fallbackPnr = `245-${Math.floor(1000000 + Math.random() * 9000000)}`;
+      const fallbackPnr = `24${Math.floor(10000000 + Math.random() * 90000000)}`;
       const fallbackId = Math.floor(1000 + Math.random() * 9000);
-      const currentUsername = user?.username || "testuser";
-      const seatStr = passengers.map((_, i) => `C2-${14 + i}`).join(", ");
+      const seatStr = allocatedSeats.join(", ");
 
       const fallbackBooking: Booking = {
         id: String(fallbackId),
@@ -175,11 +247,11 @@ export const Payment: React.FC = () => {
         passengerName: passengers[0]?.fullName || "Traveler",
         age: Number(passengers[0]?.age || 30),
         gender: passengers[0]?.gender === "Female" ? "F" : "M",
-        coach: selectedClass || "CC",
+        coach: assignedCoach,
         seatNumber: seatStr,
         travelDate: date,
         PNR: fallbackPnr,
-        bookingStatus: "confirmed",
+        bookingStatus: assignedBookingStatus,
         totalAmount: grandTotal,
         fare: fare,
         source: train.source,
@@ -191,7 +263,9 @@ export const Payment: React.FC = () => {
           age: Number(p.age),
           gender: p.gender === "Female" ? "F" : "M",
           berth: p.preferences,
-          seat: `C2-${14 + idx}`,
+          seat: allocatedSeats[idx],
+          seat_allocated: allocatedSeats[idx],
+          status: isWL ? allocatedSeats[idx] : "CNF",
         })),
         createdAt: new Date().toISOString(),
       };
@@ -203,7 +277,7 @@ export const Payment: React.FC = () => {
           bookingId: fallbackId,
           bookingRef: `REF-${Date.now()}`,
           transactionId: `TXN${Date.now()}`,
-          coach: selectedClass || "CC",
+          coach: assignedCoach,
           seatNumber: seatStr,
           trainName: train.trainName,
           trainNumber: train.trainNumber,
@@ -212,13 +286,20 @@ export const Payment: React.FC = () => {
           departureTime: train.departureTime || "06:00 AM",
           arrivalTime: train.arrivalTime || "12:43 PM",
           travelDate: date,
-          passengers: passengers,
+          travelClass: selectedClass,
+          passengers: passengers.map((p, idx) => ({
+            ...p,
+            seat: allocatedSeats[idx],
+            seat_allocated: allocatedSeats[idx],
+            status: isWL ? allocatedSeats[idx] : "CNF",
+          })),
           passengerName: passengers[0]?.fullName || "Traveler",
           fare: fare,
           totalPrice: grandTotal,
           convenienceFee,
           travelInsurance,
-          bookingStatus: "CONFIRMED",
+          bookingStatus: assignedBookingStatus,
+          chartStatus: assignedChartStatus,
           paymentMethod: selectedMethod === "ipay" ? "RailSim iPay" : selectedGateway,
         },
       });
@@ -547,6 +628,7 @@ export const Payment: React.FC = () => {
               train={train}
               selectedClass={selectedClass}
               fare={fare}
+              status={status}
               date={date}
               quota={quota}
               passengers={passengers}

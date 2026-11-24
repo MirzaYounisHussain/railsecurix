@@ -59,6 +59,7 @@ const TicketPage = () => {
       travelDate: date,
       passengerName: passenger.name,
       coach,
+      travelClass: state.selectedClass || coach,
       seatNumber: String(seatNumber),
       fare: train.fare,
       totalPrice: totalAmount || 0,

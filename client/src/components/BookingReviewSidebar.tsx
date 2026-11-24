@@ -17,6 +17,7 @@ interface BookingReviewSidebarProps {
   actionButtonLabel?: string;
   actionButtonDisabled?: boolean;
   isLoading?: boolean;
+  status?: string;
 }
 
 export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
@@ -33,6 +34,7 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
   actionButtonLabel,
   actionButtonDisabled = false,
   isLoading = false,
+  status,
 }) => {
   const paxCount = passengers.length > 0 ? passengers.length : 1;
   const baseTotal = fare * paxCount;
@@ -231,10 +233,14 @@ export const BookingReviewSidebar: React.FC<BookingReviewSidebarProps> = ({
         </div>
       </div>
 
-      {/* Availability Status Badge matching Reference Image 4 */}
+      {/* Availability Status Badge */}
       {isFareCalculated && (
-        <div className="flex items-center gap-1.5 text-xs font-black text-emerald-600 dark:text-emerald-400">
-          <span>AVAILABLE-0003</span>
+        <div className={`flex items-center gap-1.5 text-xs font-black ${
+          (status || "").toUpperCase().includes("WL")
+            ? "text-amber-600 dark:text-amber-400"
+            : "text-emerald-600 dark:text-emerald-400"
+        }`}>
+          <span>{status || "AVAILABLE-0003"}</span>
           <Info className="w-3.5 h-3.5 text-blue-500 cursor-pointer" />
         </div>
       )}

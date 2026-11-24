@@ -54,10 +54,20 @@ export interface UserProfile {
   fullName: string;
   email: string;
   role: 'user' | 'admin';
+  createdAt?: string;
+  created_at?: string;
+  phone?: string;
+  address?: string;
 }
 
 export const api = {
   // Auth
+  async updateProfile(data: { phone?: string; address?: string; fullName?: string }): Promise<{ success: boolean; user: UserProfile; message?: string }> {
+    return request('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
   async login(username: string, password: string): Promise<{ success: boolean; user: UserProfile }> {
     return request('/auth/login', {
       method: 'POST',
@@ -78,7 +88,7 @@ export const api = {
     });
   },
 
-  async sendOtp(username: string, email: string): Promise<{
+  async sendOtp(username: string, email: string, password?: string): Promise<{
     success: boolean;
     message: string;
     delivered?: boolean;
@@ -89,11 +99,11 @@ export const api = {
   }> {
     return request('/auth/send-otp', {
       method: 'POST',
-      body: JSON.stringify({ username, email }),
+      body: JSON.stringify({ username, email, password }),
     });
   },
 
-  async resendOtp(username: string, email: string): Promise<{
+  async resendOtp(username: string, email: string, password?: string): Promise<{
     success: boolean;
     message: string;
     delivered?: boolean;
@@ -104,7 +114,37 @@ export const api = {
   }> {
     return request('/auth/resend-otp', {
       method: 'POST',
-      body: JSON.stringify({ username, email }),
+      body: JSON.stringify({ username, email, password }),
+    });
+  },
+
+  async sendForgotPasswordOtp(email: string): Promise<{
+    success: boolean;
+    message: string;
+    delivered?: boolean;
+    deliveryMethod?: string;
+    devOtp?: string;
+    cooldownSeconds?: number;
+    expiresInSeconds?: number;
+  }> {
+    return request('/auth/forgot-password/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async resetPasswordWithOtp(data: {
+    email: string;
+    otp: string;
+    newPassword: string;
+    confirmPassword?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return request('/auth/forgot-password/reset', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 

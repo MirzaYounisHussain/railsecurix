@@ -59,12 +59,18 @@ export const BookingConfirmation: React.FC = () => {
   const travelInsurance = booking.travelInsurance !== undefined ? Number(booking.travelInsurance) : 0.45;
   const transactionId = booking.transactionId || `TXN${Date.now()}`;
   const paymentMethod = booking.paymentMethod || "RailSim iPay";
+  const bookingStatus = booking.bookingStatus || "CNF (Confirmed)";
+  const isWL = bookingStatus.toUpperCase().includes("WL");
+  const chartStatus = booking.chartStatus || (isWL ? "Chart Not Prepared" : "Chart Prepared");
+  const displayCoach = isWL ? "Not Assigned (WL)" : coach;
   const { user } = useAuth();
 
   useEffect(() => {
     if (pnr) {
       const currentUsername = user?.username || "testuser";
-      const seatStr = passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", ");
+      const seatStr = passengers
+        .map((p: any, i: number) => p.seat || p.seat_allocated || (isWL ? (p.status || `WL ${i + 1}`) : `${displayCoach}-${14 + i}`))
+        .join(", ");
       const confirmedBooking: Booking = {
         id: String(booking.bookingId || pnr),
         userId: currentUsername,
@@ -74,11 +80,11 @@ export const BookingConfirmation: React.FC = () => {
         passengerName: passengers[0]?.fullName || "Traveler",
         age: Number(passengers[0]?.age || 30),
         gender: passengers[0]?.gender === "Female" ? "F" : "M",
-        coach: coach,
+        coach: displayCoach,
         seatNumber: seatStr,
         travelDate: travelDate,
         PNR: pnr,
-        bookingStatus: "confirmed",
+        bookingStatus: bookingStatus,
         totalAmount: totalPrice,
         fare: baseFare,
         source: source,
@@ -90,7 +96,7 @@ export const BookingConfirmation: React.FC = () => {
       };
       saveUserBookingLocal(currentUsername, confirmedBooking);
     }
-  }, [pnr, user, booking.bookingId, trainNumber, trainName, coach, travelDate, totalPrice, baseFare, source, destination, departureTime, arrivalTime]);
+  }, [pnr, user, booking.bookingId, trainNumber, trainName, displayCoach, travelDate, totalPrice, baseFare, source, destination, departureTime, arrivalTime, bookingStatus, isWL]);
 
   const handleCopyPNR = () => {
     navigator.clipboard.writeText(pnr);
@@ -101,6 +107,9 @@ export const BookingConfirmation: React.FC = () => {
   const handleDownloadPDF = () => {
     setDownloading(true);
     try {
+      const seatStr = passengers
+        .map((p: any, i: number) => p.seat || p.seat_allocated || (isWL ? (p.status || `WL ${i + 1}`) : `${displayCoach}-${14 + i}`))
+        .join(", ");
       const ticketData = {
         PNR: pnr,
         trainName,
@@ -111,11 +120,24 @@ export const BookingConfirmation: React.FC = () => {
         arrivalTime,
         travelDate,
         passengerName: passengers[0]?.fullName || "Traveler",
-        coach,
-        seatNumber: passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", "),
+        coach: displayCoach,
+        travelClass: booking.travelClass || (coach !== "Not Assigned (WL)" ? coach : "3A"),
+        seatNumber: seatStr,
         fare: baseFare,
         totalPrice,
-        bookingStatus: "CONFIRMED",
+        bookingStatus: bookingStatus,
+        passengers: passengers.map((p: any) => ({
+          name: p.fullName || p.name || "Traveler",
+          age: p.age,
+          gender: p.gender,
+          seat: p.seat || p.seat_allocated,
+          status: p.status || bookingStatus,
+        })),
+        convenienceFee,
+        travelInsurance,
+        transactionId,
+        paymentMethod,
+        quota: booking.quota || "GENERAL",
       };
       generateTicketPDF(ticketData);
     } catch (err) {
@@ -126,6 +148,9 @@ export const BookingConfirmation: React.FC = () => {
   };
 
   const handleShareWhatsApp = () => {
+    const seatStr = passengers
+      .map((p: any, i: number) => p.seat || p.seat_allocated || (isWL ? (p.status || `WL ${i + 1}`) : `${displayCoach}-${14 + i}`))
+      .join(", ");
     const text = shareTicketWhatsApp({
       PNR: pnr,
       trainName,
@@ -136,11 +161,11 @@ export const BookingConfirmation: React.FC = () => {
       arrivalTime,
       travelDate,
       passengerName: passengers[0]?.fullName || "Traveler",
-      coach,
-      seatNumber: passengers.map((_: any, i: number) => `C2-${14 + i}`).join(", "),
+      coach: displayCoach,
+      seatNumber: seatStr,
       fare: baseFare,
       totalPrice,
-      bookingStatus: "CONFIRMED",
+      bookingStatus: bookingStatus,
     });
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
@@ -182,18 +207,32 @@ export const BookingConfirmation: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Success Banner */}
-        <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500/40 rounded-3xl p-6 text-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
-            <CheckCircle className="w-6 h-6" />
+        {/* 2. Success / WL Banner */}
+        {isWL ? (
+          <div className="bg-amber-500/10 dark:bg-amber-950/40 border-2 border-amber-500/40 rounded-3xl p-6 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center mx-auto shadow-md">
+              <Clock className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-black text-amber-900 dark:text-amber-300">
+              Ticket Booked (Waiting List)
+            </h2>
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
+              Your booking is currently on the Waiting List ({bookingStatus}). Final berth will be allotted upon chart preparation.
+            </p>
           </div>
-          <h2 className="text-2xl font-black text-emerald-900 dark:text-emerald-300">
-            Booking Confirmed!
-          </h2>
-          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-            Your Electronic Reservation Slip (ERS) has been issued and confirmed.
-          </p>
-        </div>
+        ) : (
+          <div className="bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500/40 rounded-3xl p-6 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-black text-emerald-900 dark:text-emerald-300">
+              Booking Confirmed!
+            </h2>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+              Your Electronic Reservation Slip (ERS) has been issued and confirmed.
+            </p>
+          </div>
+        )}
 
         {/* 3. Electronic Reservation Slip (ERS) Ticket Card */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
@@ -246,7 +285,7 @@ export const BookingConfirmation: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-black text-blue-700 dark:text-blue-400">
-                    Class: {coach} • Quota: GENERAL
+                    Class: {booking.travelClass || coach} • Quota: GENERAL
                   </span>
                   <span className="block text-[11px] text-slate-400 font-bold">
                     Journey Date: {travelDate}
@@ -304,23 +343,30 @@ export const BookingConfirmation: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold text-slate-800 dark:text-slate-200">
-                    {passengers.map((pax: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="p-3.5 font-mono text-slate-400">{idx + 1}</td>
-                        <td className="p-3.5 font-black uppercase">{pax.fullName}</td>
-                        <td className="p-3.5">{pax.age}</td>
-                        <td className="p-3.5">{pax.gender}</td>
-                        <td className="p-3.5 text-emerald-600 dark:text-emerald-400 font-black">
-                          CNF / CONFIRMED
-                        </td>
-                        <td className="p-3.5 font-mono font-black text-blue-700 dark:text-blue-400">
-                          C2
-                        </td>
-                        <td className="p-3.5 font-mono font-black">
-                          {14 + idx} (WS)
-                        </td>
-                      </tr>
-                    ))}
+                    {passengers.map((pax: any, idx: number) => {
+                      const paxStatus = pax.status || bookingStatus;
+                      const paxIsWl = paxStatus.toUpperCase().includes("WL");
+                      const seatDisplay = pax.seat || pax.seat_allocated || (paxIsWl ? paxStatus : `${displayCoach}-${14 + idx} (WS)`);
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="p-3.5 font-mono text-slate-400">{idx + 1}</td>
+                          <td className="p-3.5 font-black uppercase">{pax.fullName}</td>
+                          <td className="p-3.5">{pax.age}</td>
+                          <td className="p-3.5">{pax.gender}</td>
+                          <td className={`p-3.5 font-black ${
+                            paxIsWl ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                          }`}>
+                            {paxStatus}
+                          </td>
+                          <td className="p-3.5 font-mono font-black text-blue-700 dark:text-blue-400">
+                            {paxIsWl ? "Not Assigned (WL)" : displayCoach}
+                          </td>
+                          <td className="p-3.5 font-mono font-black">
+                            {seatDisplay}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
